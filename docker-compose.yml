@@ -1,0 +1,151 @@
+services:
+
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_APPLICATION_NAME=eureka-server
+    networks:
+      - padel-network
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init/create-databases.sql:/docker-entrypoint-initdb.d/create-databases.sql
+    networks:
+      - padel-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - padel-network
+
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8770:8770"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/user_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+    depends_on:
+      - postgres
+      - eureka-server
+    networks:
+      - padel-network
+
+  club-service:
+    build: ./club-service
+    container_name: club-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/club_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+    depends_on:
+      - postgres
+      - eureka-server
+    networks:
+      - padel-network
+
+  reservation-service:
+    build: ./reservation-service
+    container_name: reservation-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/reservation_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - APP_SERVICES_USER_URL=http://user-service:8770
+      - APP_SERVICES_CLUB_URL=http://club-service:8081
+    depends_on:
+      - postgres
+      - rabbitmq
+      - eureka-server
+    networks:
+      - padel-network
+
+  review-service:
+    build: ./review-service
+    container_name: review-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/review_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+    depends_on:
+      - postgres
+      - eureka-server
+    networks:
+      - padel-network
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/notification_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+    depends_on:
+      - postgres
+      - rabbitmq
+      - eureka-server
+    networks:
+      - padel-network
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - APP_SERVICES_USER_URL=http://user-service:8770
+    depends_on:
+      - eureka-server
+      - user-service
+      - club-service
+      - reservation-service
+      - review-service
+      - notification-service
+    networks:
+      - padel-network
+
+volumes:
+  postgres-data:
+
+networks:
+  padel-network:
+    driver: bridge
