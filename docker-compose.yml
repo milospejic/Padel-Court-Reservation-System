@@ -2,6 +2,7 @@ services:
 
   eureka-server:
     build: ./eureka-server
+    image: ${DOCKERHUB_USERNAME}/eureka-server:latest
     container_name: eureka-server
     ports:
       - "8761:8761"
@@ -39,6 +40,7 @@ services:
 
   user-service:
     build: ./user-service
+    image: ${DOCKERHUB_USERNAME}/user-service:latest
     container_name: user-service
     ports:
       - "8770:8770"
@@ -55,6 +57,7 @@ services:
 
   club-service:
     build: ./club-service
+    image: ${DOCKERHUB_USERNAME}/club-service:latest
     container_name: club-service
     ports:
       - "8081:8081"
@@ -71,6 +74,7 @@ services:
 
   reservation-service:
     build: ./reservation-service
+    image: ${DOCKERHUB_USERNAME}/reservation-service:latest
     container_name: reservation-service
     ports:
       - "8082:8082"
@@ -92,6 +96,7 @@ services:
 
   review-service:
     build: ./review-service
+    image: ${DOCKERHUB_USERNAME}/review-service:latest
     container_name: review-service
     ports:
       - "8083:8083"
@@ -108,6 +113,7 @@ services:
 
   notification-service:
     build: ./notification-service
+    image: ${DOCKERHUB_USERNAME}/notification-service:latest
     container_name: notification-service
     ports:
       - "8084:8084"
@@ -127,6 +133,7 @@ services:
 
   api-gateway:
     build: ./api-gateway
+    image: ${DOCKERHUB_USERNAME}/api-gateway:latest
     container_name: api-gateway
     ports:
       - "8080:8080"
