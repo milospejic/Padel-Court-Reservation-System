@@ -1,0 +1,107 @@
+name: Padel System CI/CD
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+  workflow_dispatch:
+
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Compile All Services (Skip Tests)
+        run: |
+          mvn -B -f api-gateway/pom.xml clean package -DskipTests
+          mvn -B -f eureka-server/pom.xml clean package -DskipTests
+          mvn -B -f user-service/pom.xml clean package -DskipTests
+          mvn -B -f club-service/pom.xml clean package -DskipTests
+          mvn -B -f reservation-service/pom.xml clean package -DskipTests
+          mvn -B -f review-service/pom.xml clean package -DskipTests
+          mvn -B -f notification-service/pom.xml clean package -DskipTests
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-jars
+          path: |
+            */target/*.jar
+            !*/target/*-sources.jar
+            !*/target/*-javadoc.jar
+          retention-days: 1
+
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false 
+      matrix:
+        service: [
+          'api-gateway', 
+          'eureka-server', 
+          'user-service', 
+          'club-service', 
+          'reservation-service', 
+          'review-service', 
+          'notification-service'
+        ]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Tests for ${{ matrix.service }}
+        run: mvn -B -f ${{ matrix.service }}/pom.xml test
+
+      - name: Upload Test Reports
+        if: always() 
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.service }}
+          path: ${{ matrix.service }}/target/surefire-reports/
+          retention-days: 5
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build & Push Docker Images
+        run: |
+          docker-compose build
+          docker-compose push
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
