@@ -79,13 +79,13 @@ public class ReservationServiceImplementation implements ReservationService {
     }
 
     @Override
-    public List<ReservationDto> getReservationsByUser(String email) {
+    public ResponseEntity<List<ReservationDto>> getReservationsByUser(String email) {
         List<ReservationModel> models = repo.findByUserEmail(email);
         List<ReservationDto> dtos = new ArrayList<>();
         for (ReservationModel m : models) {
             dtos.add(convertToDto(m));
         }
-        return dtos;
+        return ResponseEntity.ok(dtos);
     }
 
     @Override

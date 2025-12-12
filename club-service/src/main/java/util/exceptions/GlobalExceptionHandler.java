@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(NoResourceFoundException.class)
 	public ResponseEntity<?> handleNoResourceFoundException(NoResourceFoundException ex){
 		return ResponseEntity.status(404).body(
-				new ExceptionModel(40,HttpStatus.NOT_FOUND, ex.getMessage())
+				new ExceptionModel(400,HttpStatus.NOT_FOUND, ex.getMessage())
 				);
 	}
 	

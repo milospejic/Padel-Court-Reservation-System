@@ -14,8 +14,8 @@ public interface ReservationService {
     ResponseEntity<?> getReservation(@PathVariable int id);
 
     @GetMapping("/reservation/user/{email}")
-    List<ReservationDto> getReservationsByUser(@PathVariable String email);
-
+    ResponseEntity<List<ReservationDto>> getReservationsByUser(@PathVariable String email);
+    
     @DeleteMapping("/reservation/{id}")
     ResponseEntity<?> deleteReservation(@PathVariable int id);
 }
