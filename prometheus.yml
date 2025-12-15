@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 5s 
+
+scrape_configs:
+  - job_name: 'padel-microservices'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8080', 'user-service:8770', 'club-service:8081', 'reservation-service:8082', 'review-service:8083', 'notification-service:8084', 'eureka-server:8761']
