@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import review_service.dto.ReviewDto;
 import review_service.model.ReviewModel;
 import review_service.repository.ReviewRepository;
@@ -29,6 +30,7 @@ public class ReviewServiceImplementation implements ReviewService {
     private RestTemplate restTemplate;
 
     @Override
+    @CircuitBreaker(name = "reviewService", fallbackMethod = "addReviewFallback")
     public ResponseEntity<?> addReview(ReviewDto dto) {
         if (dto.getRating() < 1 || dto.getRating() > 5) {
             throw new InvalidRequestException("Rating must be between 1 and 5");
@@ -58,6 +60,11 @@ public class ReviewServiceImplementation implements ReviewService {
         dto.setReviewDate(saved.getReviewDate());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+
+    public ResponseEntity<?> addReviewFallback(ReviewDto dto, Throwable t) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Review Service Unavailable: Could not verify User or Club. " + t.getMessage());
     }
 
     @Override

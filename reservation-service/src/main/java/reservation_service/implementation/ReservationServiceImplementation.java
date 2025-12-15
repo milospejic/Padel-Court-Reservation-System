@@ -8,9 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import reservation_service.dto.ReservationDto;
 import reservation_service.model.ReservationModel;
 import reservation_service.repository.ReservationRepository;
@@ -34,6 +35,7 @@ public class ReservationServiceImplementation implements ReservationService {
     private RabbitTemplate rabbitTemplate;
 
     @Override
+    @CircuitBreaker(name = "reservationService", fallbackMethod = "createReservationFallback")
     public ResponseEntity<?> createReservation(ReservationDto dto) {
         try {
             restTemplate.getForEntity("http://user-service/user/email/" + dto.getUserEmail(), Object.class);
@@ -56,17 +58,20 @@ public class ReservationServiceImplementation implements ReservationService {
         ReservationModel saved = repo.save(model);
         dto.setId(saved.getId());
         
-
         NotificationRequest notification = new NotificationRequest(
             dto.getUserEmail(),
             "Reservation Confirmed",
             "Your reservation for court " + dto.getCourtNumber() + " is confirmed."
         );
         
-
         rabbitTemplate.convertAndSend("notification-queue", notification);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+    
+    public ResponseEntity<?> createReservationFallback(ReservationDto dto, Throwable t) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Reservation Service Unavailable: Could not verify User or Club. " + t.getMessage());
     }
 
     @Override
