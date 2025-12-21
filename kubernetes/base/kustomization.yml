@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - postgres-init-configmap.yml
+
+  - deployments/postgres-deployment.yml
+  - deployments/rabbitmq-deployment.yml
+  - deployments/eureka-server-deployment.yml
+
+  - services/postgres-service.yml
+  - services/rabbitmq-service.yml
+  - services/eureka-server-service.yml
+
+  - deployments/api-gateway-deployment.yml
+  - deployments/user-service-deployment.yml
+  - deployments/club-service-deployment.yml
+  - deployments/reservation-service-deployment.yml
+  - deployments/review-service-deployment.yml
+  - deployments/notification-service-deployment.yml
+
+  - services/api-gateway-service.yml
+  - services/user-service-service.yml
+  - services/club-service-service.yml
+  - services/reservation-service-service.yml
+  - services/review-service-service.yml
+  - services/notification-service-service.yml
+
+  - istio/istio-gateway.yml
+  - istio/istio-virtual-service.yml
+  - istio/istio-destination-rule.yml
