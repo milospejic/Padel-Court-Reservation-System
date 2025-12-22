@@ -13,6 +13,17 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+       matrix:
+        service: [
+          'api-gateway', 
+          'eureka-server', 
+          'user-service', 
+          'club-service', 
+          'reservation-service', 
+          'review-service', 
+          'notification-service'
+        ]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -24,29 +35,21 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Compile All Services (Skip Tests)
+      - name: Build JAR (Skip Tests)
+        working-directory: ./${{ matrix.service }}
         run: |
-          mvn -B -f api-gateway/pom.xml clean package -DskipTests
-          mvn -B -f eureka-server/pom.xml clean package -DskipTests
-          mvn -B -f user-service/pom.xml clean package -DskipTests
-          mvn -B -f club-service/pom.xml clean package -DskipTests
-          mvn -B -f reservation-service/pom.xml clean package -DskipTests
-          mvn -B -f review-service/pom.xml clean package -DskipTests
-          mvn -B -f notification-service/pom.xml clean package -DskipTests
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
 
-      - name: Upload Artifacts
+      - name: Upload JAR Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: built-jars
-          path: |
-            */target/*.jar
-            !*/target/*-sources.jar
-            !*/target/*-javadoc.jar
+          name: ${{ matrix.service }}-jar
+          path: ${{ matrix.service }}/target/*.jar
           retention-days: 1
 
 
   test:
-    needs: build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false 
@@ -83,7 +86,7 @@ jobs:
           retention-days: 5
 
   deploy:
-    needs: test
+    needs: [build, test]
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     steps:
