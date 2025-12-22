@@ -89,6 +89,18 @@ jobs:
     needs: [build, test]
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    strategy:
+          fail-fast: false
+          matrix:
+            service: [
+              "api-gateway", 
+              "eureka-server", 
+              "user-service", 
+              "club-service", 
+              "reservation-service", 
+              "review-service", 
+              "notification-service"
+            ]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -102,9 +114,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Build & Push Docker Images
+      - name: Build & Push ${{ matrix.service }}
         run: |
-          docker compose build
-          docker compose push
+          docker compose build ${{ matrix.service }}
+          docker compose push ${{ matrix.service }}
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
