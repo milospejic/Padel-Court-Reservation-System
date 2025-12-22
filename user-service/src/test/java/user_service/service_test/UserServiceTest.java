@@ -22,6 +22,7 @@ import user_service.model.UserModel;
 import user_service.repository.UserServiceRepository;
 import util.exceptions.EntityAlreadyExistsException;
 import util.exceptions.InvalidRequestException;
+import util.exceptions.NoDataFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -37,7 +38,6 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Create a fake Basic Auth header: "admin@uns.ac.rs:password"
         String auth = "admin@uns.ac.rs:password";
         validAdminAuth = "Basic " + Base64.getEncoder().encodeToString(auth.getBytes());
 
@@ -49,41 +49,83 @@ class UserServiceTest {
 
     @Test
     void createUser_Success() {
-        // 1. Define Behavior: When checking if user exists, return null (meaning user doesn't exist yet)
         when(repo.findByEmail(newUser.getEmail())).thenReturn(null);
         
-        // 2. Mock saving: Return the model that would be saved
         UserModel savedModel = new UserModel(newUser.getEmail(), newUser.getPassword(), newUser.getRole());
         when(repo.save(any(UserModel.class))).thenReturn(savedModel);
 
-        // 3. Execute
         ResponseEntity<?> response = userService.createUser(newUser, validAdminAuth);
 
-        // 4. Verify
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         verify(repo, times(1)).save(any(UserModel.class));
     }
 
     @Test
     void createUser_Fail_AlreadyExists() {
-        // 1. Define Behavior: User ALREADY exists
         when(repo.findByEmail(newUser.getEmail())).thenReturn(new UserModel());
 
-        // 2. Execute & Verify Exception
         assertThrows(EntityAlreadyExistsException.class, () -> {
             userService.createUser(newUser, validAdminAuth);
         });
 
-        // 3. Ensure save was NEVER called
         verify(repo, times(0)).save(any(UserModel.class));
     }
 
     @Test
     void createUser_Fail_InvalidRole() {
-        newUser.setRole("SUPER_ADMIN"); // Invalid Role
+        newUser.setRole("SUPER_ADMIN");
 
         assertThrows(InvalidRequestException.class, () -> {
             userService.createUser(newUser, validAdminAuth);
         });
+    }
+    
+    @Test
+    void updateUser_Success() {
+        UserModel existingUser = new UserModel();
+        existingUser.setRole("USER");
+        existingUser.setEmail(newUser.getEmail());
+        
+        when(repo.findByEmail(newUser.getEmail())).thenReturn(existingUser);
+        
+        doNothing().when(repo).updateUser(anyString(), anyString(), anyString());
+
+        ResponseEntity<?> response = userService.updateUser(newUser, validAdminAuth);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(repo, times(1)).updateUser(newUser.getEmail(), newUser.getPassword(), newUser.getRole());
+    }
+    @Test
+    void updateUser_Fail_NotFound() {
+        when(repo.findByEmail(newUser.getEmail())).thenReturn(null);
+
+        assertThrows(NoDataFoundException.class, () -> {
+            userService.updateUser(newUser, validAdminAuth);
+        });
+    }
+
+    @Test
+    void deleteUser_Success() {
+        UserModel user = new UserModel();
+        user.setRole("USER");
+        when(repo.findById(1)).thenReturn(user);
+        doNothing().when(repo).deleteById(1);
+
+        ResponseEntity<?> response = userService.deleteUser(1);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(repo, times(1)).deleteById(1);
+    }
+
+    @Test
+    void deleteUser_Fail_Owner() {
+        UserModel owner = new UserModel();
+        owner.setRole("OWNER");
+        when(repo.findById(1)).thenReturn(owner);
+
+        assertThrows(InvalidRequestException.class, () -> {
+            userService.deleteUser(1);
+        });
+        verify(repo, times(0)).deleteById(1);
     }
 }
