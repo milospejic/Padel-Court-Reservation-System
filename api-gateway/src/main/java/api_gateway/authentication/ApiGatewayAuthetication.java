@@ -38,6 +38,9 @@ public class ApiGatewayAuthetication {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeExchange(exchange -> exchange
+            		
+            	.pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/webjars/**").permitAll()
+            	.pathMatchers("/*/v3/api-docs").permitAll()
                 // Public Endpoints (View Clubs, View Reviews)
                 .pathMatchers(HttpMethod.GET, "/club/**").permitAll()
                 .pathMatchers(HttpMethod.GET, "/review/**").permitAll()
