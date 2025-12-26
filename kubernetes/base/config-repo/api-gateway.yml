@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+app:
+  services:
+    user-url: http://user-service:8770
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: User Service
+        url: /user-service/v3/api-docs
+      - name: Club Service
+        url: /club-service/v3/api-docs
+      - name: Reservation Service
+        url: /reservation-service/v3/api-docs
+      - name: Review Service
+        url: /review-service/v3/api-docs
+      - name: Notification Service
+        url: /notification-service/v3/api-docs

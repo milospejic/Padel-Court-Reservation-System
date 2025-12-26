@@ -12,6 +12,10 @@ spec:
       labels:
         app: reservation-service
     spec:
+      initContainers:
+        - name: wait-for-config-server
+          image: busybox
+          command: ['sh', '-c', 'until wget -q -O - http://config-server:8888/actuator/health; do echo waiting for config-server; sleep 2; done']
       containers:
         - name: reservation-service
           image: milospejic001/reservation-service:latest
@@ -35,3 +39,7 @@ spec:
               value: http://user-service:8770
             - name: APP_SERVICES_CLUB_URL
               value: http://club-service:8081
+            - name: CONFIG_SERVER_URL
+              value: http://config-server:8888/
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker

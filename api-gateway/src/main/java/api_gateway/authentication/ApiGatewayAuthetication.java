@@ -24,7 +24,7 @@ public class ApiGatewayAuthetication {
     @Autowired
     private CustomAuthenticationHandler customAuthenticationHandler;
 
-    @Value("${app.services.user-url}")
+    @Value("${app.services.user-url:http://user-service:8770}")
     private String userServiceUrl;
 
     @Bean

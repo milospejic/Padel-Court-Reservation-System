@@ -12,6 +12,10 @@ spec:
       labels:
         app: notification-service
     spec:
+      initContainers:
+        - name: wait-for-config-server
+          image: busybox
+          command: ['sh', '-c', 'until wget -q -O - http://config-server:8888/actuator/health; do echo waiting for config-server; sleep 2; done']
       containers:
         - name: notification-service
           image: milospejic001/notification-service:latest
@@ -31,3 +35,7 @@ spec:
               value: "5672"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: http://eureka-server:8761/eureka
+            - name: CONFIG_SERVER_URL
+              value: http://config-server:8888/
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker

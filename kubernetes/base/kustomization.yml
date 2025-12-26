@@ -7,10 +7,12 @@ resources:
   - deployments/postgres-deployment.yml
   - deployments/rabbitmq-deployment.yml
   - deployments/eureka-server-deployment.yml
+  - deployments/config-server-deployment.yml
 
   - services/postgres-service.yml
   - services/rabbitmq-service.yml
   - services/eureka-server-service.yml
+  - services/config-server-service.yml
 
   - deployments/api-gateway-deployment.yml
   - deployments/user-service-deployment.yml
@@ -29,3 +31,15 @@ resources:
   - istio/istio-gateway.yml
   - istio/istio-virtual-service.yml
   - istio/istio-destination-rule.yml
+
+configMapGenerator:
+  - name: config-repo
+    files:
+      - config-repo/application.yml
+      - config-repo/api-gateway.yml
+      - config-repo/eureka-server.yml
+      - config-repo/user-service.yml
+      - config-repo/club-service.yml
+      - config-repo/reservation-service.yml
+      - config-repo/review-service.yml
+      - config-repo/notification-service.yml

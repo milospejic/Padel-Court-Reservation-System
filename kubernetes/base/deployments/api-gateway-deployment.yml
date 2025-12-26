@@ -12,6 +12,10 @@ spec:
       labels:
         app: api-gateway
     spec:
+      initContainers:
+        - name: wait-for-config-server
+          image: busybox
+          command: ['sh', '-c', 'until wget -q -O - http://config-server:8888/actuator/health; do echo waiting for config-server; sleep 2; done']
       containers:
         - name: api-gateway
           image: milospejic001/api-gateway:latest
@@ -23,3 +27,7 @@ spec:
               value: http://eureka-server:8761/eureka
             - name: APP_SERVICES_USER_URL
               value: http://user-service:8770
+            - name: CONFIG_SERVER_URL
+              value: http://config-server:8888/
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker

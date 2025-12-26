@@ -1,5 +1,24 @@
 services:
 
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    image: ${DOCKERHUB_USERNAME}/config-server:latest
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./config-repo:/app/config-repo
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:/app/config-repo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - padel-network
+
   eureka-server:
     build: ./eureka-server
     image: ${DOCKERHUB_USERNAME}/eureka-server:latest
@@ -8,6 +27,16 @@ services:
       - "8761:8761"
     environment:
       - SPRING_APPLICATION_NAME=eureka-server
+      - CONFIG_SERVER_URL=http://config-server:8888/
+      - EUREKA_HOST=eureka-server
+    depends_on:
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - padel-network
 
@@ -45,13 +74,21 @@ services:
     ports:
       - "8770:8770"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/user_db
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - SPRING_APPLICATION_NAME=user-service
+      - CONFIG_SERVER_URL=http://config-server:8888/
+      - EUREKA_HOST=eureka-server
+      - DB_HOST=postgres
+      - RABBIT_HOST=rabbitmq
+      - PREFER_IP=true
     depends_on:
-      - postgres
-      - eureka-server
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
     networks:
       - padel-network
 
@@ -62,13 +99,21 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/club_db
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - SPRING_APPLICATION_NAME=club-service
+      - CONFIG_SERVER_URL=http://config-server:8888/
+      - EUREKA_HOST=eureka-server
+      - DB_HOST=postgres
+      - RABBIT_HOST=rabbitmq
+      - PREFER_IP=true
     depends_on:
-      - postgres
-      - eureka-server
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
     networks:
       - padel-network
 
@@ -79,18 +124,21 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/reservation_db
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_RABBITMQ_HOST=rabbitmq
-      - SPRING_RABBITMQ_PORT=5672
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
-      - APP_SERVICES_USER_URL=http://user-service:8770
-      - APP_SERVICES_CLUB_URL=http://club-service:8081
+      - SPRING_APPLICATION_NAME=reservation-service
+      - CONFIG_SERVER_URL=http://config-server:8888/
+      - EUREKA_HOST=eureka-server
+      - DB_HOST=postgres
+      - RABBIT_HOST=rabbitmq
+      - PREFER_IP=true
     depends_on:
-      - postgres
-      - rabbitmq
-      - eureka-server
+        config-server:
+          condition: service_healthy
+        eureka-server:
+          condition: service_healthy
+        postgres:
+          condition: service_started
+        rabbitmq:
+          condition: service_started
     networks:
       - padel-network
 
@@ -101,13 +149,21 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/review_db
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - SPRING_APPLICATION_NAME=review-service
+      - CONFIG_SERVER_URL=http://config-server:8888/
+      - EUREKA_HOST=eureka-server
+      - DB_HOST=postgres
+      - RABBIT_HOST=rabbitmq
+      - PREFER_IP=true
     depends_on:
-      - postgres
-      - eureka-server
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
     networks:
       - padel-network
 
@@ -118,16 +174,21 @@ services:
     ports:
       - "8084:8084"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/notification_db
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_RABBITMQ_HOST=rabbitmq
-      - SPRING_RABBITMQ_PORT=5672
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - SPRING_APPLICATION_NAME=notification-service
+      - CONFIG_SERVER_URL=http://config-server:8888/
+      - EUREKA_HOST=eureka-server
+      - DB_HOST=postgres
+      - RABBIT_HOST=rabbitmq
+      - PREFER_IP=true
     depends_on:
-      - postgres
-      - rabbitmq
-      - eureka-server
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
     networks:
       - padel-network
 
@@ -138,15 +199,13 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
-      - APP_SERVICES_USER_URL=http://user-service:8770
+      - SPRING_APPLICATION_NAME=api-gateway
+      - CONFIG_SERVER_URL=http://config-server:8888/
+      - EUREKA_HOST=eureka-server
+      - PREFER_IP=true
     depends_on:
       - eureka-server
       - user-service
-      - club-service
-      - reservation-service
-      - review-service
-      - notification-service
     networks:
       - padel-network
   
