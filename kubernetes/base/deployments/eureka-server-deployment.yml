@@ -31,3 +31,10 @@ spec:
               value: http://config-server:8888/
             - name: SPRING_PROFILES_ACTIVE
               value: docker
+          readinessProbe:
+                      httpGet:
+                        path: /actuator/health
+                        port: 8761
+                      initialDelaySeconds: 60 
+                      periodSeconds: 10
+                      failureThreshold: 5
