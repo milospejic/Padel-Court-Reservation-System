@@ -19,7 +19,7 @@ spec:
       containers:
         - name: reservation-service
           image: milospejic001/reservation-service:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8082
           env:

@@ -5,9 +5,12 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
   instance:
-    prefer-ip-address: ${PREFER_IP:false}
+    prefer-ip-address: true
 
 spring:
+  sql:
+    init:
+      mode: always
   rabbitmq:
     host: ${RABBIT_HOST:localhost}
     port: 5672

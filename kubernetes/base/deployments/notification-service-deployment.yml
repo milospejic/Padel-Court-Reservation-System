@@ -19,7 +19,7 @@ spec:
       containers:
         - name: notification-service
           image: milospejic001/notification-service:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8084
           env:

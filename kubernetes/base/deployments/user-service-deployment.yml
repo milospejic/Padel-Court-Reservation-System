@@ -19,7 +19,7 @@ spec:
       containers:
         - name: user-service
           image: milospejic001/user-service:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8770
           env:

@@ -1,0 +1,109 @@
+#!/bin/bash
+
+# ==================================================================================
+# Padel Court Reservation System - Minikube Startup Script
+# ==================================================================================
+
+: "${DOCKER_USERNAME:?Environment variable DOCKER_USERNAME is not set}"
+
+
+NAMESPACE="padel-dev"
+MEMORY="7000" 
+CPUS="4"
+
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo -e "${BLUE}>>> Starting Deployment Sequence...${NC}"
+
+# 1. Start Minikube
+if minikube status | grep -q "Running"; then
+    echo -e "${GREEN}Minikube is already running.${NC}"
+else
+    echo -e "${BLUE}Starting Minikube (CPUs: ${CPUS}, Memory: ${MEMORY}MB)...${NC}"
+    minikube start --cpus $CPUS --memory $MEMORY --driver=docker
+fi
+
+# 2. Configure Docker Environment
+echo -e "${BLUE}Pointing shell to Minikube's Docker daemon...${NC}"
+eval $(minikube docker-env)
+
+# 3. Setup Istio
+echo -e "${BLUE}Checking Istio installation...${NC}"
+if ! istioctl version > /dev/null 2>&1; then
+    echo -e "${RED}istioctl is not installed. Please install Istio first.${NC}"
+    exit 1
+fi
+
+if ! kubectl get namespace istio-system > /dev/null 2>&1; then
+    echo -e "${BLUE}Installing Istio (demo profile)...${NC}"
+    istioctl install --set profile=demo -y
+else
+    echo -e "${GREEN}Istio is already installed.${NC}"
+fi
+
+# 4. Create Namespace and Enable Injection
+echo -e "${BLUE}Setting up namespace: ${NAMESPACE}...${NC}"
+kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+kubectl label namespace $NAMESPACE istio-injection=enabled --overwrite
+
+# 5. Prepare Configuration for Kustomize 
+echo -e "${BLUE}Preparing config-repo for Kustomize...${NC}"
+rm -rf kubernetes/base/config-repo
+cp -r config-repo kubernetes/base/
+
+# 6. Patch Deployment YAMLs (Crucial for Local Dev)
+echo -e "${BLUE}Patching Deployments to use local images (IfNotPresent)...${NC}"
+for file in kubernetes/base/deployments/*.yml; do
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g' "$file"
+    else
+        sed -i 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g' "$file"
+    fi
+done
+echo -e "${GREEN}Deployments patched.${NC}"
+
+# 7. Build Docker Images
+services=(
+    "config-server"
+    "eureka-server"
+    "user-service"
+    "club-service"
+    "reservation-service"
+    "review-service"
+    "notification-service"
+    "api-gateway"
+)
+
+echo -e "${BLUE}Building Docker images inside Minikube...${NC}"
+for service in "${services[@]}"; do
+    echo -e "Building ${service}..."
+    docker build -t "${DOCKER_USERNAME}/${service}:latest" ./$service
+done
+echo -e "${GREEN}All images built successfully.${NC}"
+
+# 8. Deploy to Kubernetes
+echo -e "${BLUE}Applying Kubernetes Manifests...${NC}"
+kubectl apply -k kubernetes/overlays/dev
+
+# 9. Wait for Config Server
+echo -e "${BLUE}Waiting for Config Server to be ready...${NC}"
+kubectl wait --namespace $NAMESPACE \
+  --for=condition=ready pod \
+  --selector=app=config-server \
+  --timeout=180s
+
+# 10. Wait for API Gateway
+echo -e "${BLUE}Waiting for API Gateway to be ready...${NC}"
+kubectl wait --namespace $NAMESPACE \
+  --for=condition=ready pod \
+  --selector=app=api-gateway \
+  --timeout=180s
+
+echo -e "\n${GREEN}======================================================${NC}"
+echo -e "${GREEN}   DEPLOYMENT SUCCESSFUL!   ${NC}"
+echo -e "${GREEN}======================================================${NC}"
+echo -e "IMPORTANT: Run the tunnel in a separate terminal now:${NC}"
+echo -e "\n   ${RED}minikube tunnel${NC}\n"

@@ -19,7 +19,7 @@ spec:
       containers:
         - name: eureka-server
           image: milospejic001/eureka-server:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8761
           env:

@@ -19,7 +19,7 @@ spec:
       containers:
         - name: club-service
           image: milospejic001/club-service:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081
           env:
