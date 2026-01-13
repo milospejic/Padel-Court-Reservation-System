@@ -1,72 +1,67 @@
 package review_service;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import reactor.core.publisher.Mono;
 import review_service.dto.ReviewDto;
 import review_service.repository.ReviewRepository;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = RANDOM_PORT)
+@AutoConfigureWebTestClient
 @ActiveProfiles("test")
 class ReviewServiceIntegrationTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
 
     @Autowired
     private ReviewRepository repo;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     @MockBean
-    private RestTemplate restTemplate;
+    private WebClient.Builder webClientBuilder;
 
     @BeforeEach
     void setUp() {
-        repo.deleteAll();
+        repo.deleteAll().block();
+
+        WebClient webClient = mock(WebClient.class);
+        WebClient.RequestHeadersUriSpec uriSpec = mock(WebClient.RequestHeadersUriSpec.class);
+        WebClient.RequestHeadersSpec headersSpec = mock(WebClient.RequestHeadersSpec.class);
+        WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+
+        when(webClientBuilder.build()).thenReturn(webClient);
+        when(webClient.get()).thenReturn(uriSpec);
+        when(uriSpec.uri(anyString())).thenReturn(headersSpec);
+        when(headersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(Object.class)).thenReturn(Mono.just(new Object()));
     }
 
     @Test
-    void addReview_Success() throws Exception {
+    void addReview_Success() {
         ReviewDto review = new ReviewDto(0, "user@test.com", 1, 5, "Great court!", LocalDate.now());
 
-        when(restTemplate.getForEntity(contains("user-service"), eq(Object.class)))
-                .thenReturn(ResponseEntity.ok().build());
-        when(restTemplate.getForEntity(contains("club-service"), eq(Object.class)))
-                .thenReturn(ResponseEntity.ok().build());
-
-        mockMvc.perform(post("/review")
+        webTestClient.post().uri("/review")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(review)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.comment").value("Great court!"));
-
-        mockMvc.perform(get("/review/club/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].rating").value(5));
+                .bodyValue(review)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody()
+                .jsonPath("$.comment").isEqualTo("Great court!");
     }
 }

@@ -23,11 +23,11 @@ spec:
           ports:
             - containerPort: 8084
           env:
-            - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://postgres:5432/notification_db
-            - name: SPRING_DATASOURCE_USERNAME
+            - name: SPRING_R2DBC_URL
+              value: r2dbc:postgresql://postgres:5432/notification_db
+            - name: SPRING_R2DBC_USERNAME
               value: "postgres"
-            - name: SPRING_DATASOURCE_PASSWORD
+            - name: SPRING_R2DBC_PASSWORD
               value: "postgres"
             - name: SPRING_RABBITMQ_HOST
               value: "rabbitmq"

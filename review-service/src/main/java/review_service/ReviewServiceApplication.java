@@ -6,8 +6,7 @@ import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.reactive.config.WebFluxConfigurer;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {"review_service", "util"})
@@ -17,11 +16,11 @@ public class ReviewServiceApplication {
         SpringApplication.run(ReviewServiceApplication.class, args);
     }
     
-    @Bean
-	public WebMvcConfigurer corsConfigurer() {
-		return new WebMvcConfigurer() {
+	@Bean
+	public WebFluxConfigurer corsConfigurer() { 
+		return new WebFluxConfigurer() {
 			@Override
-			public void addCorsMappings(CorsRegistry registry) {
+			public void addCorsMappings(org.springframework.web.reactive.config.CorsRegistry registry) {
 				registry.addMapping("/**")
 						.allowedOrigins("*")
 						.allowedMethods("*");

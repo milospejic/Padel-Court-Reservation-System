@@ -1,18 +1,14 @@
 package review_service.implementation;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
-
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import review_service.dto.ReviewDto;
 import review_service.model.ReviewModel;
 import review_service.repository.ReviewRepository;
@@ -27,72 +23,77 @@ public class ReviewServiceImplementation implements ReviewService {
     private ReviewRepository repo;
 
     @Autowired
-    private RestTemplate restTemplate;
+    private WebClient.Builder webClientBuilder;
 
     @Override
     @CircuitBreaker(name = "reviewService", fallbackMethod = "addReviewFallback")
-    public ResponseEntity<?> addReview(ReviewDto dto) {
+    public Mono<ResponseEntity<?>> addReview(ReviewDto dto) {
         if (dto.getRating() < 1 || dto.getRating() > 5) {
-            throw new InvalidRequestException("Rating must be between 1 and 5");
+            return Mono.error(new InvalidRequestException("Rating must be between 1 and 5"));
         }
 
-        try {
-            restTemplate.getForEntity("http://user-service/user/email/" + dto.getUserEmail(), Object.class);
-        } catch (HttpClientErrorException e) {
-            throw new NoDataFoundException("User email not found: " + dto.getUserEmail());
-        }
+        WebClient webClient = webClientBuilder.build();
 
-        try {
-            restTemplate.getForEntity("http://club-service/club/" + dto.getClubId(), Object.class);
-        } catch (HttpClientErrorException e) {
-            throw new NoDataFoundException("Club ID not found: " + dto.getClubId());
-        }
+        Mono<Object> userCheck = webClient.get()
+                .uri("http://user-service/user/email/" + dto.getUserEmail())
+                .retrieve()
+                .bodyToMono(Object.class)
+                .onErrorMap(e -> new NoDataFoundException("User email not found: " + dto.getUserEmail()));
 
-        ReviewModel model = new ReviewModel(
-            dto.getUserEmail(),
-            dto.getClubId(),
-            dto.getRating(),
-            dto.getComment(),
-            LocalDate.now()
-        );
-        ReviewModel saved = repo.save(model);
-        dto.setId(saved.getId());
-        dto.setReviewDate(saved.getReviewDate());
+        Mono<Object> clubCheck = webClient.get()
+                .uri("http://club-service/club/" + dto.getClubId())
+                .retrieve()
+                .bodyToMono(Object.class)
+                .onErrorMap(e -> new NoDataFoundException("Club ID not found: " + dto.getClubId()));
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+        return Mono.zip(userCheck, clubCheck)
+                .flatMap(tuple -> {
+                    ReviewModel model = new ReviewModel(
+                        dto.getUserEmail(),
+                        dto.getClubId(),
+                        dto.getRating(),
+                        dto.getComment(),
+                        LocalDate.now()
+                    );
+                    return repo.save(model);
+                })
+                .map(saved -> {
+                    dto.setId(saved.getId());
+                    dto.setReviewDate(saved.getReviewDate());
+                    return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.CREATED).body(dto);
+                });
     }
 
-    public ResponseEntity<?> addReviewFallback(ReviewDto dto, Throwable t) {
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body("Review Service Unavailable: Could not verify User or Club. " + t.getMessage());
-    }
-
-    @Override
-    public List<ReviewDto> getReviewsByClub(int clubId) {
-        List<ReviewModel> models = repo.findByClubId(clubId);
-        return convertToDtoList(models);
-    }
-
-    @Override
-    public List<ReviewDto> getReviewsByUser(String email) {
-        List<ReviewModel> models = repo.findByUserEmail(email);
-        return convertToDtoList(models);
+    public Mono<ResponseEntity<?>> addReviewFallback(ReviewDto dto, Throwable t) {
+        return Mono.just((ResponseEntity<?>) ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Review Service Unavailable: " + t.getMessage()));
     }
 
     @Override
-    public ResponseEntity<?> deleteReview(int id) {
-        if (repo.existsById(id)) {
-            repo.deleteById(id);
-            return ResponseEntity.ok("Review deleted successfully");
-        }
-        throw new NoDataFoundException("Review not found with id " + id);
+    public Flux<ReviewDto> getReviewsByClub(int clubId) {
+        return repo.findByClubId(clubId)
+                .map(this::convertToDto);
     }
 
-    private List<ReviewDto> convertToDtoList(List<ReviewModel> models) {
-        List<ReviewDto> dtos = new ArrayList<>();
-        for (ReviewModel m : models) {
-            dtos.add(new ReviewDto(m.getId(), m.getUserEmail(), m.getClubId(), m.getRating(), m.getComment(), m.getReviewDate()));
-        }
-        return dtos;
+    @Override
+    public Flux<ReviewDto> getReviewsByUser(String email) {
+        return repo.findByUserEmail(email)
+                .map(this::convertToDto);
+    }
+
+    @Override
+    public Mono<ResponseEntity<?>> deleteReview(int id) {
+        return repo.existsById(id)
+                .flatMap(exists -> {
+                    if (Boolean.TRUE.equals(exists)) {
+                        return repo.deleteById(id)
+                                .then(Mono.just((ResponseEntity<?>) ResponseEntity.ok("Review deleted successfully")));
+                    }
+                    return Mono.error(new NoDataFoundException("Review not found with id " + id));
+                });
+    }
+
+    private ReviewDto convertToDto(ReviewModel m) {
+        return new ReviewDto(m.getId(), m.getUserEmail(), m.getClubId(), m.getRating(), m.getComment(), m.getReviewDate());
     }
 }

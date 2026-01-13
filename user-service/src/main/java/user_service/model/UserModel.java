@@ -2,28 +2,27 @@ package user_service.model;
 
 import java.io.Serializable;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
-@Entity
+
+
+@Table("user_model")
 public class UserModel implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
 	
 	@Id
-	@GeneratedValue(strategy= GenerationType.IDENTITY)
-	private int id;
+	private Integer id;
 	
-	@Column(nullable = false, unique = true)
+	@Column("email")
 	private String email;
 	
-	@Column(nullable = false)
+	@Column("password")
 	private String password;
 	
-	@Column(nullable = false) 
+	@Column("role") 
 	private String role;
 	
 	public UserModel() {
@@ -37,10 +36,10 @@ public class UserModel implements Serializable {
 		this.role = role;
 	}
 
-	public int getId() {
+	public Integer getId() {
 		return id;
 	}
-	public void setId(int id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 	public String getEmail() {

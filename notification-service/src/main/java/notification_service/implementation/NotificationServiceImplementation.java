@@ -1,17 +1,17 @@
 package notification_service.implementation;
 
 import java.time.LocalDateTime;
+import notification_service.dto.NotificationDto;
+import notification_service.model.NotificationModel;
+import notification_service.repository.NotificationRepository;
+import notification_service.service.NotificationService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import notification_service.dto.NotificationDto;
-import notification_service.model.NotificationModel;
-import notification_service.repository.NotificationRepository;
-import notification_service.service.NotificationService;
+import reactor.core.publisher.Mono;
 
 @RestController
 public class NotificationServiceImplementation implements NotificationService {
@@ -20,18 +20,19 @@ public class NotificationServiceImplementation implements NotificationService {
     private NotificationRepository repo;
 
     @Override
-    public ResponseEntity<?> sendNotification(@RequestBody NotificationDto dto) {
-        processNotification(dto);
-        return ResponseEntity.status(HttpStatus.OK).body("Notification sent via REST.");
+    public Mono<ResponseEntity<?>> sendNotification(@RequestBody NotificationDto dto) {
+        return processNotification(dto)
+                .then(Mono.just(ResponseEntity.status(HttpStatus.OK).body("Notification sent via REST.")));
     }
+
 
     @RabbitListener(queues = "notification-queue")
     public void handleNotificationMessage(NotificationDto dto) {
         System.out.println(">>> Received Async Notification Message!");
-        processNotification(dto);
+        processNotification(dto).subscribe();
     }
 
-    private void processNotification(NotificationDto dto) {
+    private Mono<NotificationModel> processNotification(NotificationDto dto) {
         System.out.println("------------------------------------------------");
         System.out.println("SENDING EMAIL TO: " + dto.getRecipientEmail());
         System.out.println("SUBJECT: " + dto.getSubject());
@@ -44,6 +45,6 @@ public class NotificationServiceImplementation implements NotificationService {
             dto.getMessage(),
             LocalDateTime.now()
         );
-        repo.save(model);
+        return repo.save(model);
     }
 }

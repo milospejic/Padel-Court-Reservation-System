@@ -1,3 +1,5 @@
+DELETE FROM reservation_model;
+
 INSERT INTO reservation_model (user_email, club_id, court_number, reservation_time) 
 VALUES 
     ('user@uns.ac.rs', 1, 1, '2025-12-01T10:00:00'),

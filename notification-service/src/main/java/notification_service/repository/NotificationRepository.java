@@ -1,9 +1,10 @@
 package notification_service.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import notification_service.model.NotificationModel;
-import java.util.List;
+import reactor.core.publisher.Flux;
 
-public interface NotificationRepository extends JpaRepository<NotificationModel, Integer> {
-    List<NotificationModel> findByRecipientEmail(String recipientEmail);
+public interface NotificationRepository extends ReactiveCrudRepository<NotificationModel, Integer> {
+    
+    Flux<NotificationModel> findByRecipientEmail(String recipientEmail);
 }

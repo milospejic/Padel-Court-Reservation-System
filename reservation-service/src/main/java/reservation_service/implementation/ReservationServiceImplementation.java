@@ -1,26 +1,20 @@
 package reservation_service.implementation;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
-
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reservation_service.dto.ReservationDto;
 import reservation_service.model.ReservationModel;
 import reservation_service.repository.ReservationRepository;
 import reservation_service.service.ReservationService;
-
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-
-import util.exceptions.NoDataFoundException;
 import util.exceptions.InvalidRequestException;
+import util.exceptions.NoDataFoundException;
 
 @RestController
 public class ReservationServiceImplementation implements ReservationService {
@@ -29,77 +23,82 @@ public class ReservationServiceImplementation implements ReservationService {
     private ReservationRepository repo;
 
     @Autowired
-    private RestTemplate restTemplate;
+    private WebClient.Builder webClientBuilder;
     
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private RabbitTemplate rabbitTemplate; 
 
     @Override
     @CircuitBreaker(name = "reservationService", fallbackMethod = "createReservationFallback")
-    public ResponseEntity<?> createReservation(ReservationDto dto) {
-        try {
-            restTemplate.getForEntity("http://user-service/user/email/" + dto.getUserEmail(), Object.class);
-        } catch (HttpClientErrorException e) {
-        	throw new InvalidRequestException("User email not found: " + dto.getUserEmail());
-        }
+    public Mono<ResponseEntity<?>> createReservation(ReservationDto dto) {
+        WebClient webClient = webClientBuilder.build();
 
-        try {
-            restTemplate.getForEntity("http://club-service/club/" + dto.getClubId(), Object.class);
-        } catch (HttpClientErrorException e) {
-        	throw new InvalidRequestException("Club ID not found: " + dto.getClubId());
-        }
+        Mono<Object> userCheck = webClient.get()
+                .uri("http://user-service/user/email/" + dto.getUserEmail())
+                .retrieve()
+                .bodyToMono(Object.class)
+                .onErrorMap(e -> new InvalidRequestException("User email not found: " + dto.getUserEmail()));
 
-        ReservationModel model = new ReservationModel(
-            dto.getUserEmail(), 
-            dto.getClubId(), 
-            dto.getCourtNumber(), 
-            dto.getReservationTime()
-        );
-        ReservationModel saved = repo.save(model);
-        dto.setId(saved.getId());
-        
-        NotificationRequest notification = new NotificationRequest(
-            dto.getUserEmail(),
-            "Reservation Confirmed",
-            "Your reservation for court " + dto.getCourtNumber() + " is confirmed."
-        );
-        
-        rabbitTemplate.convertAndSend("notification-queue", notification);
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+        Mono<Object> clubCheck = webClient.get()
+                .uri("http://club-service/club/" + dto.getClubId())
+                .retrieve()
+                .bodyToMono(Object.class)
+                .onErrorMap(e -> new InvalidRequestException("Club ID not found: " + dto.getClubId()));
+
+        return Mono.zip(userCheck, clubCheck)
+                .flatMap(tuple -> {
+                    ReservationModel model = new ReservationModel(
+                        dto.getUserEmail(), 
+                        dto.getClubId(), 
+                        dto.getCourtNumber(), 
+                        dto.getReservationTime()
+                    );
+                    return repo.save(model);
+                })
+                .doOnSuccess(saved -> {
+                    NotificationRequest notification = new NotificationRequest(
+                        dto.getUserEmail(),
+                        "Reservation Confirmed",
+                        "Your reservation for court " + dto.getCourtNumber() + " is confirmed."
+                    );
+                    rabbitTemplate.convertAndSend("notification-queue", notification); 
+                })
+                .map(saved -> {
+                    dto.setId(saved.getId());
+                    return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.CREATED).body(dto);
+                });
     }
     
-    public ResponseEntity<?> createReservationFallback(ReservationDto dto, Throwable t) {
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body("Reservation Service Unavailable: Could not verify User or Club. " + t.getMessage());
+    public Mono<ResponseEntity<?>> createReservationFallback(ReservationDto dto, Throwable t) {
+        return Mono.just((ResponseEntity<?>) ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Reservation Service Unavailable: " + t.getMessage()));
     }
 
     @Override
-    public ResponseEntity<?> getReservation(int id) {
-        Optional<ReservationModel> model = repo.findById(id);
-        if (model.isPresent()) {
-            return ResponseEntity.ok(convertToDto(model.get()));
-        }
-        throw new NoDataFoundException("Reservation not found");
+    public Mono<ResponseEntity<?>> getReservation(int id) {
+        return repo.findById(id)
+                .switchIfEmpty(Mono.error(new NoDataFoundException("Reservation not found")))
+                .map(this::convertToDto)
+                .map(dto -> (ResponseEntity<?>) ResponseEntity.ok(dto));
     }
 
     @Override
-    public ResponseEntity<List<ReservationDto>> getReservationsByUser(String email) {
-        List<ReservationModel> models = repo.findByUserEmail(email);
-        List<ReservationDto> dtos = new ArrayList<>();
-        for (ReservationModel m : models) {
-            dtos.add(convertToDto(m));
-        }
-        return ResponseEntity.ok(dtos);
+    public Mono<ResponseEntity<Flux<ReservationDto>>> getReservationsByUser(String email) {
+        Flux<ReservationDto> flux = repo.findByUserEmail(email)
+                .map(this::convertToDto);
+        return Mono.just(ResponseEntity.ok(flux));
     }
 
     @Override
-    public ResponseEntity<?> deleteReservation(int id) {
-        if (repo.existsById(id)) {
-            repo.deleteById(id);
-            return ResponseEntity.ok("Reservation deleted");
-        }
-        throw new NoDataFoundException("Reservation not found");
+    public Mono<ResponseEntity<?>> deleteReservation(int id) {
+        return repo.existsById(id)
+                .flatMap(exists -> {
+                    if (Boolean.TRUE.equals(exists)) {
+                        return repo.deleteById(id)
+                                .then(Mono.just((ResponseEntity<?>) ResponseEntity.ok("Reservation deleted")));
+                    }
+                    return Mono.error(new NoDataFoundException("Reservation not found"));
+                });
     }
 
     private ReservationDto convertToDto(ReservationModel m) {
@@ -118,6 +117,6 @@ public class ReservationServiceImplementation implements ReservationService {
         }
         public String getRecipient() { return recipient; }
         public String getSubject() { return subject; }
-        public String getMessage() { return message; }
+        public String getMessage() { return message; }    
     }
 }

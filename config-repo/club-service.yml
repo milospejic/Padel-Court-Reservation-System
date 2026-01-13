@@ -2,8 +2,10 @@ server:
   port: 8081
 
 spring:
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/club_db
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
+  r2dbc:
+      url: r2dbc:postgresql://${DB_HOST:localhost}:5432/club_db
+      username: postgres
+      password: postgres
+  sql:
+    init:
+      mode: always

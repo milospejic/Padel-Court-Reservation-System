@@ -1,22 +1,22 @@
 package club_service.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Column;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
-@Entity
+@Table("club_model")
 public class ClubModel {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
-    @Column(nullable = false, unique = true)
+    @Column("name")
     private String name;
 
+    @Column("location")
     private String location;
+    
+    @Column("phone_number")
     private String phoneNumber;
 
     public ClubModel() {}
@@ -27,8 +27,7 @@ public class ClubModel {
         this.phoneNumber = phoneNumber;
     }
 
-    // Getters and Setters
-    public int getId() { return id; }
+    public Integer getId() { return id; }
     public void setId(int id) { this.id = id; }
     
     public String getName() { return name; }

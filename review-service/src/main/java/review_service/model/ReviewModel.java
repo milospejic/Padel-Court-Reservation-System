@@ -1,28 +1,35 @@
 package review_service.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
 
-@Entity
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table("review_model")
 public class ReviewModel {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
-    @Column(nullable = false)
+    @Column("user_email")
     private String userEmail;
 
-    @Column(nullable = false)
-    private int clubId;
+    @Column("club_id")
+    private Integer clubId;
 
-    private int rating; 
+    @Column("rating")
+    private Integer rating; 
+    
+    @Column("comment")
     private String comment;
+    
+    @Column("review_date")
     private LocalDate reviewDate;
 
     public ReviewModel() {}
 
-    public ReviewModel(String userEmail, int clubId, int rating, String comment, LocalDate reviewDate) {
+    public ReviewModel(String userEmail, Integer clubId, Integer rating, String comment, LocalDate reviewDate) {
         this.userEmail = userEmail;
         this.clubId = clubId;
         this.rating = rating;
@@ -30,17 +37,17 @@ public class ReviewModel {
         this.reviewDate = reviewDate;
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 
     public String getUserEmail() { return userEmail; }
     public void setUserEmail(String userEmail) { this.userEmail = userEmail; }
 
-    public int getClubId() { return clubId; }
-    public void setClubId(int clubId) { this.clubId = clubId; }
+    public Integer getClubId() { return clubId; }
+    public void setClubId(Integer clubId) { this.clubId = clubId; }
 
-    public int getRating() { return rating; }
-    public void setRating(int rating) { this.rating = rating; }
+    public Integer getRating() { return rating; }
+    public void setRating(Integer rating) { this.rating = rating; }
 
     public String getComment() { return comment; }
     public void setComment(String comment) { this.comment = comment; }

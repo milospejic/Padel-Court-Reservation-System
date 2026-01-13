@@ -1,40 +1,34 @@
 package notification_service;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 import notification_service.dto.NotificationDto;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = RANDOM_PORT)
+@AutoConfigureWebTestClient
 @ActiveProfiles("test")
 class NotificationServiceIntegrationTest {
 
     @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+    private WebTestClient webTestClient;
 
     @Test
-    void sendNotification_Success() throws Exception {
+    void sendNotification_Success() {
         NotificationDto notification = new NotificationDto("user@test.com", "Test Subject", "Hello World");
 
-        mockMvc.perform(post("/notification")
+        webTestClient.post().uri("/notification")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(notification)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Notification sent via REST."));
+                .bodyValue(notification)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class).isEqualTo("Notification sent via REST.");
     }
 }

@@ -1,16 +1,13 @@
 package user_service.implementation;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
-
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import user_service.dto.UserDto;
 import user_service.model.UserModel;
 import user_service.repository.UserServiceRepository;
@@ -23,107 +20,116 @@ import util.exceptions.NoDataFoundException;
 @RestController
 public class UserServiceImplementation implements UserService {
 
-	@Autowired
-	private UserServiceRepository repo;
-	
-	
-	@Override
-	public List<UserDto> getUsers() {
-		List<UserModel> listOfModels = repo.findAll();
-		ArrayList<UserDto> listOfDtos = new ArrayList<UserDto>();
-		for(UserModel model: listOfModels) {
-			listOfDtos.add(convertModelToDto(model));
-		}
-		return listOfDtos;
-	}
-	
-	
-	@Override
-	public UserDto getUser(@PathVariable String email){
-		if(repo.existsByEmail(email)) {
-		UserModel userModel = repo.findByEmail(email);
-		return convertModelToDto(userModel);
-		}else {
-			return null;
-		}
-	}
+    @Autowired
+    private UserServiceRepository repo;
+    
+    @Override
+    public Flux<UserDto> getUsers() {
+        return repo.findAll()
+                .map(this::convertModelToDto);
+    }
+    
+    @Override
+    public Mono<UserDto> getUser(String email) {
+        return repo.findByEmail(email)
+                .map(this::convertModelToDto)
+                .switchIfEmpty(Mono.empty()); // Returns null/empty if not found
+    }
 
-
-	@Override
-	public ResponseEntity<?> createUser(UserDto dto,@RequestHeader("Authorization") String authorization) {
-		
-		String email = getEmail(authorization);
-		email = email.toLowerCase();
-		if(dto.getRole().equals("USER") || dto.getRole().equals("ADMIN")) {
-			if(repo.findByEmail(dto.getEmail()) == null) {
-				if(dto.getRole().equals("ADMIN") && repo.existsByEmailAndRole(email,"ADMIN")) {
-					
-					throw new ForbidenActionException("As an ADMIN you can only add USERs");
-				}
-				UserModel model = convertDtoToModel(dto);
-				return ResponseEntity.status(201).body(repo.save(model));
-			}
-			throw new EntityAlreadyExistsException("User with forwarded email already exists");
-		}
-		throw new InvalidRequestException("Role must be either USER or ADMIN");
-
-	}
-
-	@Override
-	public ResponseEntity<?> updateUser(UserDto dto, @RequestHeader("Authorization") String authorization) {
-		String email = getEmail(authorization);
-		email = email.toLowerCase();
-		if(dto.getRole().equals("USER") || dto.getRole().equals("ADMIN")) {
-		UserModel existingUser =repo.findByEmail(dto.getEmail());
-		if( existingUser != null) {
-			if(existingUser.getRole().equals("ADMIN") && repo.existsByEmailAndRole(email,"ADMIN")) {
-				throw new ForbidenActionException("As an ADMIN you can only update USERs");
-			}
-			
-			if( dto.getRole().equals("ADMIN") && repo.existsByEmailAndRole(email,"ADMIN")) {
-				throw new ForbidenActionException("As an ADMIN you can not award other USERs the status of ADMIN");
-			}
-			
-			
-			repo.updateUser(dto.getEmail(), dto.getPassword(), dto.getRole());
-			
-			return ResponseEntity.status(200).body(dto);
-		}
-			throw new NoDataFoundException("User with forwarded email does not exist");	
-		}
-		throw new InvalidRequestException("Role must be either USER or ADMIN");
-	}
-	
-	public UserModel convertDtoToModel(UserDto dto) {
-		return new UserModel(dto.getEmail(), dto.getPassword(), dto.getRole());
-	}
-
-	public UserDto convertModelToDto(UserModel model) {
-		return new UserDto(model.getEmail(), model.getPassword(), model.getRole());
-	}
-
-	@Override
-	public ResponseEntity<?> deleteUser(int id) {
-		UserModel existingUser =repo.findById(id);
-		
-		if (existingUser != null) {
-			if(existingUser.getRole().equals("OWNER")) {
-				throw new InvalidRequestException("You cant delete the OWNER, he stays!");
-			}
-            repo.deleteById(id);
-            return ResponseEntity.status(200).body("User deleted successfully");
-        } else {
-        	throw new NoDataFoundException("User not found with id " + id);
+    @Override
+    public Mono<ResponseEntity<?>> createUser(UserDto dto, @RequestHeader("Authorization") String authorization) {
+        String requestEmail = getEmail(authorization).toLowerCase();
+        
+        if (!dto.getRole().equals("USER") && !dto.getRole().equals("ADMIN")) {
+            return Mono.error(new InvalidRequestException("Role must be either USER or ADMIN"));
         }
-	}
-	
-	
-	private String getEmail(String authorization) {
-		String base64Credentials = authorization.substring("Basic".length()).trim();
-		byte[] decoded = Base64.getDecoder().decode(base64Credentials);
-		String credentials = new String(decoded, StandardCharsets.UTF_8);
-		String[] emailPassword = credentials.split(":", 2);
-		String email = emailPassword[0];
-		return email;
-	}
+
+        return repo.findByEmail(dto.getEmail())
+                .hasElement()
+                .flatMap(exists -> {
+                    if (exists) {
+                        return Mono.error(new EntityAlreadyExistsException("User with forwarded email already exists"));
+                    }
+                    
+                    if (dto.getRole().equals("ADMIN")) {
+                        return repo.existsByEmailAndRole(requestEmail, "ADMIN")
+                                .flatMap(isAdmin -> {
+                                    if (isAdmin) {
+                                        return Mono.error(new ForbidenActionException("As an ADMIN you can only add USERs"));
+                                    }
+                                    return saveUser(dto);
+                                });
+                    }
+                    return saveUser(dto);
+                });
+    }
+
+    private Mono<ResponseEntity<?>> saveUser(UserDto dto) {
+        UserModel model = convertDtoToModel(dto);
+        return repo.save(model)
+                .map(saved -> ResponseEntity.status(201).body(saved));
+    }
+
+    @Override
+    public Mono<ResponseEntity<?>> updateUser(UserDto dto, String authorization) {
+        String requestEmail = getEmail(authorization).toLowerCase();
+
+        if (!dto.getRole().equals("USER") && !dto.getRole().equals("ADMIN")) {
+            return Mono.error(new InvalidRequestException("Role must be either USER or ADMIN"));
+        }
+
+        return repo.findByEmail(dto.getEmail())
+                .switchIfEmpty(Mono.error(new NoDataFoundException("User with forwarded email does not exist")))
+                .flatMap(existingUser -> {
+                    
+                    if (existingUser.getRole().equals("ADMIN") || dto.getRole().equals("ADMIN")) {
+                        return repo.existsByEmailAndRole(requestEmail, "ADMIN")
+                                .flatMap(isAdmin -> {
+                                    if (isAdmin) {
+                                        return Mono.error(new ForbidenActionException("Admins cannot modify Admins or promote users to Admin"));
+                                    }
+                                    return executeUpdate(dto);
+                                });
+                    }
+                    return executeUpdate(dto);
+                });
+    }
+
+    private Mono<ResponseEntity<?>> executeUpdate(UserDto dto) {
+        return repo.updateUser(dto.getEmail(), dto.getPassword(), dto.getRole())
+                .map(count -> ResponseEntity.status(200).body(dto));
+    }
+
+    @Override
+    public Mono<ResponseEntity<?>> deleteUser(int id) {
+        return repo.findById(id)
+                .switchIfEmpty(Mono.error(new NoDataFoundException("User not found with id " + id)))
+                .flatMap(existingUser -> {
+                    if (existingUser.getRole().equals("OWNER")) {
+                        return Mono.error(new InvalidRequestException("You cant delete the OWNER, he stays!"));
+                    }
+                    return repo.deleteById(id)
+                            .then(Mono.just(ResponseEntity.status(200).body("User deleted successfully")));
+                });
+    }
+    
+    public UserModel convertDtoToModel(UserDto dto) {
+        return new UserModel(dto.getEmail(), dto.getPassword(), dto.getRole());
+    }
+
+    public UserDto convertModelToDto(UserModel model) {
+        return new UserDto(model.getEmail(), model.getPassword(), model.getRole());
+    }
+    
+    private String getEmail(String authorization) {
+        try {
+            String base64Credentials = authorization.substring("Basic".length()).trim();
+            byte[] decoded = Base64.getDecoder().decode(base64Credentials);
+            String credentials = new String(decoded, StandardCharsets.UTF_8);
+            String[] emailPassword = credentials.split(":", 2);
+            return emailPassword[0];
+        } catch (Exception e) {
+            return "";
+        }
+    }
 }

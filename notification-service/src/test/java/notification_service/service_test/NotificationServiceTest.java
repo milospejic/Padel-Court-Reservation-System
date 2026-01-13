@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import reactor.core.publisher.Mono;
 import notification_service.dto.NotificationDto;
 import notification_service.implementation.NotificationServiceImplementation;
 import notification_service.model.NotificationModel;
@@ -35,9 +36,9 @@ class NotificationServiceTest {
         NotificationDto dto = new NotificationDto("user@test.com", "Subject", "Message");
         dto.setSentAt(LocalDateTime.now());
         
-        when(repo.save(any(NotificationModel.class))).thenReturn(new NotificationModel());
+        when(repo.save(any(NotificationModel.class))).thenReturn(Mono.just(new NotificationModel()));
 
-        ResponseEntity<?> response = notificationService.sendNotification(dto);
+        ResponseEntity<?> response = notificationService.sendNotification(dto).block();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(repo, times(1)).save(any(NotificationModel.class));

@@ -1,46 +1,49 @@
 package reservation_service.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@Entity
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table("reservation_model")
 public class ReservationModel {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
-    @Column(nullable = false)
+    @Column("user_email")
     private String userEmail;
 
-    @Column(nullable = false)
-    private int clubId;
-
-    private int courtNumber;
+    @Column("club_id")
+    private Integer clubId;
     
-    @Column(nullable = false)
+    @Column("court_number")
+    private Integer courtNumber;
+    
+    @Column("reservation_time")
     private LocalDateTime reservationTime;
 
     public ReservationModel() {}
 
-    public ReservationModel(String userEmail, int clubId, int courtNumber, LocalDateTime reservationTime) {
+    public ReservationModel(String userEmail, Integer clubId, Integer courtNumber, LocalDateTime reservationTime) {
         this.userEmail = userEmail;
         this.clubId = clubId;
         this.courtNumber = courtNumber;
         this.reservationTime = reservationTime;
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 
     public String getUserEmail() { return userEmail; }
     public void setUserEmail(String userEmail) { this.userEmail = userEmail; }
 
-    public int getClubId() { return clubId; }
-    public void setClubId(int clubId) { this.clubId = clubId; }
+    public Integer getClubId() { return clubId; }
+    public void setClubId(Integer clubId) { this.clubId = clubId; }
 
-    public int getCourtNumber() { return courtNumber; }
-    public void setCourtNumber(int courtNumber) { this.courtNumber = courtNumber; }
+    public Integer getCourtNumber() { return courtNumber; }
+    public void setCourtNumber(Integer courtNumber) { this.courtNumber = courtNumber; }
 
     public LocalDateTime getReservationTime() { return reservationTime; }
     public void setReservationTime(LocalDateTime reservationTime) { this.reservationTime = reservationTime; }

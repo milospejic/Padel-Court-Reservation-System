@@ -1,3 +1,5 @@
+DELETE FROM review_model;
+
 INSERT INTO review_model (user_email, club_id, rating, comment, review_date) 
 VALUES 
     ('user@uns.ac.rs', 1, 5, 'Great courts and friendly staff!', '2025-11-01'),

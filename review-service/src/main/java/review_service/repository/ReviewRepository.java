@@ -1,10 +1,11 @@
 package review_service.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import review_service.model.ReviewModel;
-import java.util.List;
+import reactor.core.publisher.Flux;
 
-public interface ReviewRepository extends JpaRepository<ReviewModel, Integer> {
-    List<ReviewModel> findByClubId(int clubId);
-    List<ReviewModel> findByUserEmail(String userEmail);
+public interface ReviewRepository extends ReactiveCrudRepository<ReviewModel, Integer> {
+    
+    Flux<ReviewModel> findByClubId(int clubId);    
+    Flux<ReviewModel> findByUserEmail(String userEmail);
 }

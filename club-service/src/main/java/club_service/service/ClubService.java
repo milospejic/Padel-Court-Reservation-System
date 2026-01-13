@@ -1,21 +1,22 @@
 package club_service.service;
 
-import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import club_service.dto.ClubDto;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface ClubService {
 
     @GetMapping("/club")
-    List<ClubDto> getClubs();
+    Flux<ClubDto> getClubs();
 
     @GetMapping("/club/{id}")
-    ResponseEntity<ClubDto> getClub(@PathVariable int id);
+    Mono<ResponseEntity<ClubDto>> getClub(@PathVariable int id);
 
     @PostMapping("/club")
-    ResponseEntity<?> createClub(@RequestBody ClubDto dto);
+    Mono<ResponseEntity<?>> createClub(@RequestBody ClubDto dto);
 
     @DeleteMapping("/club/{id}")
-    ResponseEntity<?> deleteClub(@PathVariable int id);
+    Mono<ResponseEntity<?>> deleteClub(@PathVariable int id);
 }

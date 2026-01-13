@@ -1,22 +1,24 @@
 package notification_service.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@Entity
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table("notification_model")
 public class NotificationModel {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
-    @Column(nullable = false)
+    @Column("recipient_email")
     private String recipientEmail;
 
-    @Column(nullable = false)
+    @Column("subject")
     private String subject;
 
-    @Column(nullable = false)
+    @Column("message")
     private String message;
 
     private LocalDateTime sentAt;
@@ -30,8 +32,8 @@ public class NotificationModel {
         this.sentAt = sentAt;
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 
     public String getRecipientEmail() { return recipientEmail; }
     public void setRecipientEmail(String recipientEmail) { this.recipientEmail = recipientEmail; }
