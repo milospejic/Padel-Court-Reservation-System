@@ -38,6 +38,8 @@ class UserServiceTest {
         when(repo.findByEmail(newUser.getEmail())).thenReturn(Mono.empty());
         
         UserModel savedModel = new UserModel(newUser.getEmail(), newUser.getPassword(), newUser.getRole());
+        savedModel.setId(1);
+        
         when(repo.save(any(UserModel.class))).thenReturn(Mono.just(savedModel));
 
         User response = userService.createUser(newUser).block();

@@ -31,7 +31,10 @@ class ClubServiceTest {
         Club apiClub = new Club(0, "New Club", "Location", "123", null);
         
         when(repo.existsByName(apiClub.getName())).thenReturn(Mono.just(false));
-        when(repo.save(any(ClubModel.class))).thenReturn(Mono.just(new ClubModel("New Club", "Location", "123")));
+        ClubModel savedEntity = new ClubModel("New Club", "Location", "123");
+        savedEntity.setId(1);
+        
+        when(repo.save(any(ClubModel.class))).thenReturn(Mono.just(savedEntity));
 
         Club response = clubService.createClub(apiClub).block();
 
