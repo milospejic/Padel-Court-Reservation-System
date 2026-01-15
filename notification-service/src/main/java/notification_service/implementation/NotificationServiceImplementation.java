@@ -1,17 +1,15 @@
 package notification_service.implementation;
 
-import java.time.LocalDateTime;
-import notification_service.dto.NotificationDto;
+import api.core.notification.Notification;
+import api.core.notification.NotificationService;
 import notification_service.model.NotificationModel;
 import notification_service.repository.NotificationRepository;
-import notification_service.service.NotificationService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
+
+import java.time.LocalDateTime;
 
 @RestController
 public class NotificationServiceImplementation implements NotificationService {
@@ -20,31 +18,33 @@ public class NotificationServiceImplementation implements NotificationService {
     private NotificationRepository repo;
 
     @Override
-    public Mono<ResponseEntity<?>> sendNotification(@RequestBody NotificationDto dto) {
-        return processNotification(dto)
-                .then(Mono.just(ResponseEntity.status(HttpStatus.OK).body("Notification sent via REST.")));
+    public Mono<Notification> sendNotification(Notification body) {
+        return processNotification(body).map(this::entityToApi);
     }
-
 
     @RabbitListener(queues = "notification-queue")
-    public void handleNotificationMessage(NotificationDto dto) {
+    public void handleNotificationMessage(Notification body) {
         System.out.println(">>> Received Async Notification Message!");
-        processNotification(dto).subscribe();
+        processNotification(body).subscribe();
     }
 
-    private Mono<NotificationModel> processNotification(NotificationDto dto) {
-        System.out.println("------------------------------------------------");
-        System.out.println("SENDING EMAIL TO: " + dto.getRecipientEmail());
-        System.out.println("SUBJECT: " + dto.getSubject());
-        System.out.println("BODY: " + dto.getMessage());
-        System.out.println("------------------------------------------------");
-
+    private Mono<NotificationModel> processNotification(Notification body) {
         NotificationModel model = new NotificationModel(
-            dto.getRecipientEmail(),
-            dto.getSubject(),
-            dto.getMessage(),
-            LocalDateTime.now()
+            body.getRecipientEmail(),
+            body.getSubject(),
+            body.getMessage(),
+            (body.getSentAt() != null) ? body.getSentAt() : LocalDateTime.now()
         );
         return repo.save(model);
+    }
+
+    private Notification entityToApi(NotificationModel entity) {
+        return new Notification(
+            entity.getRecipientEmail(),
+            entity.getSubject(),
+            entity.getMessage(),
+            entity.getSentAt(),
+            null
+        );
     }
 }

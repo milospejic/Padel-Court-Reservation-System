@@ -9,11 +9,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
 import reactor.core.publisher.Mono;
-import club_service.dto.ClubDto;
+
+import api.core.club.Club; 
 import club_service.implementation.ClubServiceImplementation;
 import club_service.model.ClubModel;
 import club_service.repository.ClubRepository;
@@ -23,43 +21,45 @@ import util.exceptions.NoDataFoundException;
 @ExtendWith(MockitoExtension.class)
 class ClubServiceTest {
 
-    @Mock
-    private ClubRepository repo;
+    @Mock private ClubRepository repo;
 
     @InjectMocks
     private ClubServiceImplementation clubService;
 
     @Test
     void createClub_Success() {
-        ClubDto dto = new ClubDto("New Club", "Location", "123");
-        when(repo.existsByName(dto.getName())).thenReturn(Mono.just(false));
-        when(repo.save(any(ClubModel.class))).thenReturn(Mono.just(new ClubModel()));
+        Club apiClub = new Club(0, "New Club", "Location", "123", null);
+        
+        when(repo.existsByName(apiClub.getName())).thenReturn(Mono.just(false));
+        when(repo.save(any(ClubModel.class))).thenReturn(Mono.just(new ClubModel("New Club", "Location", "123")));
 
-        ResponseEntity<?> response = clubService.createClub(dto).block();
+        Club response = clubService.createClub(apiClub).block();
 
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response);
+        assertEquals("New Club", response.getName());
         verify(repo, times(1)).save(any(ClubModel.class));
     }
 
     @Test
     void createClub_Fail_Duplicate() {
-        ClubDto dto = new ClubDto("Existing Club", "Location", "123");
-        when(repo.existsByName(dto.getName())).thenReturn(Mono.just(true));
+        Club apiClub = new Club(0, "Existing Club", "Location", "123", null);
+        when(repo.existsByName(apiClub.getName())).thenReturn(Mono.just(true));
 
         assertThrows(EntityAlreadyExistsException.class, () -> {
-            clubService.createClub(dto).block();
+            clubService.createClub(apiClub).block();
         });
     }
 
     @Test
     void getClub_Success() {
         ClubModel model = new ClubModel("Test Club", "Loc", "111");
+        model.setId(1);
         when(repo.findById(1)).thenReturn(Mono.just(model));
 
-        ResponseEntity<ClubDto> response = clubService.getClub(1).block();
+        Club response = clubService.getClub(1).block();
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Test Club", response.getBody().getName());
+        assertNotNull(response);
+        assertEquals("Test Club", response.getName());
     }
 
     @Test

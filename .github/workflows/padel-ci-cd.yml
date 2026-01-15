@@ -23,7 +23,8 @@ jobs:
           'club-service', 
           'reservation-service', 
           'review-service', 
-          'notification-service'
+          'notification-service',
+          'club-composite-service'
         ]
     steps:
       - name: Checkout Code
@@ -35,6 +36,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+
+      - name: Install Shared API Library
+        run: |
+          chmod +x mvnw
+          ./mvnw install -DskipTests -f api/pom.xml
 
       - name: Build JAR (Skip Tests)
         working-directory: ./${{ matrix.service }}
@@ -63,7 +69,8 @@ jobs:
           'club-service', 
           'reservation-service', 
           'review-service', 
-          'notification-service'
+          'notification-service',
+          'club-composite-service'
         ]
     steps:
       - name: Checkout Code
@@ -75,6 +82,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+
+      - name: Install Shared API Library
+        run: |
+          chmod +x mvnw
+          ./mvnw install -DskipTests -f api/pom.xml
 
       - name: Run Tests for ${{ matrix.service }}
         run: mvn -B -f ${{ matrix.service }}/pom.xml test
@@ -102,7 +114,8 @@ jobs:
               "club-service", 
               "reservation-service", 
               "review-service", 
-              "notification-service"
+              "notification-service",
+              "club-composite-service"
             ]
     steps:
       - name: Checkout Code

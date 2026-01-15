@@ -42,10 +42,12 @@ public class ApiGatewayAuthetication {
             		
             	.pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/webjars/**").permitAll()
             	.pathMatchers("/*/v3/api-docs").permitAll()
+                .pathMatchers("/*/openapi/v3/api-docs").permitAll()
                 // Public Endpoints (View Clubs, View Reviews)
                 .pathMatchers(HttpMethod.GET, "/club/**").permitAll()
                 .pathMatchers(HttpMethod.GET, "/review/**").permitAll()
                 
+                .pathMatchers(HttpMethod.GET, "/club-composite/**").permitAll()
                 // User & Admin Operations (Bookings, Writing Reviews)
                 .pathMatchers("/reservation/**").hasAnyRole("USER", "ADMIN")
                 .pathMatchers(HttpMethod.POST, "/review/**").hasAnyRole("USER", "ADMIN")

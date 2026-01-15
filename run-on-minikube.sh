@@ -65,7 +65,19 @@ for file in kubernetes/base/deployments/*.yml; do
 done
 echo -e "${GREEN}Deployments patched.${NC}"
 
-# 7. Build Docker Images
+# 7. Build Java & Docker Images
+
+
+echo -e "${BLUE}Building Shared API Library...${NC}"
+cd api
+chmod +x mvnw
+./mvnw clean install -DskipTests
+if [ $? -ne 0 ]; then
+    echo -e "${RED}API build failed! Stopping script.${NC}"
+    exit 1
+fi
+cd ..
+
 services=(
     "config-server"
     "eureka-server"
@@ -75,12 +87,29 @@ services=(
     "review-service"
     "notification-service"
     "api-gateway"
+    "club-composite-service"
 )
 
-echo -e "${BLUE}Building Docker images inside Minikube...${NC}"
+echo -e "${BLUE}Building Services and Docker Images...${NC}"
 for service in "${services[@]}"; do
-    echo -e "Building ${service}..."
-    docker build -t "${DOCKER_USERNAME}/${service}:latest" ./$service
+    echo -e "${BLUE}Processing ${service}...${NC}"
+    
+    cd $service
+    chmod +x mvnw
+    ./mvnw clean package -DskipTests
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Maven build failed for ${service}! Stopping script.${NC}"
+        exit 1
+    fi
+    
+
+    docker build -t "${DOCKER_USERNAME}/${service}:latest" .
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Docker build failed for ${service}! Stopping script.${NC}"
+        exit 1
+    fi
+    
+    cd ..
 done
 echo -e "${GREEN}All images built successfully.${NC}"
 
@@ -91,14 +120,14 @@ kubectl apply -k kubernetes/overlays/dev
 # 9. Wait for Config Server
 echo -e "${BLUE}Waiting for Config Server to be ready...${NC}"
 kubectl wait --namespace $NAMESPACE \
-  --for=condition=ready pod \
+  --for=condition=Ready pod \
   --selector=app=config-server \
   --timeout=180s
 
 # 10. Wait for API Gateway
 echo -e "${BLUE}Waiting for API Gateway to be ready...${NC}"
 kubectl wait --namespace $NAMESPACE \
-  --for=condition=ready pod \
+  --for=condition=Ready pod \
   --selector=app=api-gateway \
   --timeout=180s
 

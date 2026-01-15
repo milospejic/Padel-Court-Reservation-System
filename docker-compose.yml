@@ -192,6 +192,27 @@ services:
     networks:
       - padel-network
 
+  club-composite-service:
+      build: ./club-composite-service
+      image: ${DOCKERHUB_USERNAME}/club-composite-service:latest
+      container_name: club-composite-service
+      ports:
+        - "8085:8085"
+      environment:
+        - SPRING_APPLICATION_NAME=club-composite-service
+        - CONFIG_SERVER_URL=http://config-server:8888/
+        - EUREKA_HOST=eureka-server
+      depends_on:
+        config-server:
+          condition: service_healthy
+        eureka-server:
+          condition: service_healthy
+        club-service:
+          condition: service_started
+        review-service:
+          condition: service_started
+      networks:
+        - padel-network
   api-gateway:
     build: ./api-gateway
     image: ${DOCKERHUB_USERNAME}/api-gateway:latest

@@ -26,3 +26,5 @@ springdoc:
         url: /review-service/v3/api-docs
       - name: Notification Service
         url: /notification-service/v3/api-docs
+      - name: Club Composite Service
+        url: /club-composite-service/v3/api-docs

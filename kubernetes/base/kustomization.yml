@@ -20,6 +20,7 @@ resources:
   - deployments/reservation-service-deployment.yml
   - deployments/review-service-deployment.yml
   - deployments/notification-service-deployment.yml
+  - deployments/club-composite-service-deployment.yml
 
   - services/api-gateway-service.yml
   - services/user-service-service.yml
@@ -27,6 +28,7 @@ resources:
   - services/reservation-service-service.yml
   - services/review-service-service.yml
   - services/notification-service-service.yml
+  - services/club-composite-service-service.yml
 
   - istio/istio-gateway.yml
   - istio/istio-virtual-service.yml
@@ -43,3 +45,4 @@ configMapGenerator:
       - config-repo/reservation-service.yml
       - config-repo/review-service.yml
       - config-repo/notification-service.yml
+      - config-repo/club-composite-service.yml

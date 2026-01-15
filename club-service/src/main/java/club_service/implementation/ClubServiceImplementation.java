@@ -1,12 +1,10 @@
 package club_service.implementation;
 
-import club_service.dto.ClubDto;
+import api.core.club.Club;
+import api.core.club.ClubService;
 import club_service.model.ClubModel;
 import club_service.repository.ClubRepository;
-import club_service.service.ClubService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -20,41 +18,52 @@ public class ClubServiceImplementation implements ClubService {
     private ClubRepository repo;
 
     @Override
-    public Flux<ClubDto> getClubs() {
+    public Flux<Club> getClubs() {
         return repo.findAll()
-                .map(model -> new ClubDto(model.getName(), model.getLocation(), model.getPhoneNumber()));
+                .map(this::entityToApi);
     }
 
     @Override
-    public Mono<ResponseEntity<ClubDto>> getClub(int id) {
+    public Mono<Club> getClub(int id) {
         return repo.findById(id)
-                .map(model -> new ClubDto(model.getName(), model.getLocation(), model.getPhoneNumber()))
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.error(new NoDataFoundException("Club not found")));
+                .switchIfEmpty(Mono.error(new NoDataFoundException("Club not found: " + id)))
+                .map(this::entityToApi);
     }
 
     @Override
-    public Mono<ResponseEntity<?>> createClub(ClubDto dto) {
-        return repo.existsByName(dto.getName())
+    public Mono<Club> createClub(Club body) {
+        return repo.existsByName(body.getName())
                 .flatMap(exists -> {
-                    if (exists) {
-                        return Mono.error(new EntityAlreadyExistsException("Club already exists"));
+                    if (Boolean.TRUE.equals(exists)) {
+                        return Mono.error(new EntityAlreadyExistsException("Club already exists: " + body.getName()));
                     }
-                    ClubModel model = new ClubModel(dto.getName(), dto.getLocation(), dto.getPhoneNumber());
-                    return repo.save(model);
+                    return repo.save(apiToEntity(body));
                 })
-                .map(saved -> ResponseEntity.status(HttpStatus.CREATED).body("Club created successfully"));
+                .map(this::entityToApi);
     }
 
     @Override
-    public Mono<ResponseEntity<?>> deleteClub(int id) {
+    public Mono<Void> deleteClub(int id) {
         return repo.existsById(id)
                 .flatMap(exists -> {
-                    if (exists) {
-                        return repo.deleteById(id)
-                                .then(Mono.just(ResponseEntity.ok("Club deleted successfully")));
+                    if (!Boolean.TRUE.equals(exists)) {
+                        return Mono.error(new NoDataFoundException("Club not found: " + id));
                     }
-                    return Mono.error(new NoDataFoundException("Club not found"));
+                    return repo.deleteById(id);
                 });
+    }
+
+    private Club entityToApi(ClubModel entity) {
+        return new Club(
+            entity.getId(), 
+            entity.getName(), 
+            entity.getLocation(), 
+            entity.getPhoneNumber(), 
+            null
+        );
+    }
+
+    private ClubModel apiToEntity(Club api) {
+        return new ClubModel(api.getName(), api.getLocation(), api.getPhoneNumber());
     }
 }
