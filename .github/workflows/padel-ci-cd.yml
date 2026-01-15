@@ -38,9 +38,7 @@ jobs:
           cache: maven
 
       - name: Install Shared API Library
-        run: |
-          chmod +x mvnw
-          ./mvnw install -DskipTests -f api/pom.xml
+        run: mvn install -DskipTests -f api/pom.xml
 
       - name: Build JAR (Skip Tests)
         working-directory: ./${{ matrix.service }}
@@ -84,9 +82,7 @@ jobs:
           cache: maven
 
       - name: Install Shared API Library
-        run: |
-          chmod +x mvnw
-          ./mvnw install -DskipTests -f api/pom.xml
+        run: mvn install -DskipTests -f api/pom.xml
 
       - name: Run Tests for ${{ matrix.service }}
         run: mvn -B -f ${{ matrix.service }}/pom.xml test
@@ -120,6 +116,12 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Download JAR Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.service }}-jar
+          path: ${{ matrix.service }}/target
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
