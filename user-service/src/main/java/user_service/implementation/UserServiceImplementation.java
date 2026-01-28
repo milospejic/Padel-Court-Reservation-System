@@ -3,6 +3,7 @@ package user_service.implementation;
 import api.core.user.User;
 import api.core.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 import user_service.model.UserModel;
@@ -15,6 +16,9 @@ public class UserServiceImplementation implements UserService {
 
     @Autowired
     private UserServiceRepository repo;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public Mono<User> getUser(int id) {
@@ -38,6 +42,9 @@ public class UserServiceImplementation implements UserService {
                     if (Boolean.TRUE.equals(exists)) {
                         return Mono.error(new EntityAlreadyExistsException("User exists: " + body.getEmail()));
                     }
+                    
+                    User userToSave = body;
+                    userToSave.setPassword(passwordEncoder.encode(body.getPassword()));
                     return repo.save(apiToEntity(body));
                 })
                 .map(this::entityToApi);
@@ -52,7 +59,7 @@ public class UserServiceImplementation implements UserService {
         return new User(
             entity.getId(),
             entity.getEmail(),
-            entity.getPassword(),
+            null,
             entity.getRole(),
             null 
         );

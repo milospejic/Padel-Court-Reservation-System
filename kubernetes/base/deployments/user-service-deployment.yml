@@ -35,6 +35,11 @@ spec:
               value: http://config-server:8888/
             - name: SPRING_PROFILES_ACTIVE
               value: docker
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_SECRET
           readinessProbe:
                       httpGet:
                         path: /actuator/health

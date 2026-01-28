@@ -1,47 +1,45 @@
 package api_gateway.authentication;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers; // Note the 's'
+
 import reactor.core.publisher.Mono;
 
 @Configuration
 @EnableWebFluxSecurity
 public class ApiGatewayAuthetication {
-    
+
+    @Autowired
+    private SecurityContextRepository securityContextRepository;
+
+    @Autowired
+    private JwtAuthenticationManager authenticationManager;
+
     @Autowired
     private CustomAuthenticationHandler customAuthenticationHandler;
-
-    @Value("${app.services.user-url:http://user-service:8770}")
-    private String userServiceUrl;
-
-    @Bean
-    @LoadBalanced
-    public WebClient.Builder webClientBuilder() {
-        return WebClient.builder();
-    }
-
+    
     @Bean
     public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
         http
             .csrf(csrf -> csrf.disable())
+            .authenticationManager(authenticationManager)
+            .securityContextRepository(securityContextRepository)
             .authorizeExchange(exchange -> exchange
             	.pathMatchers("/actuator/**").permitAll()
+            	.pathMatchers("/auth/**").permitAll()
             		
             	.pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/webjars/**").permitAll()
             	.pathMatchers("/*/v3/api-docs").permitAll()
+            	.pathMatchers("/swagger-ui/index.html").permitAll()
+
                 .pathMatchers("/*/openapi/v3/api-docs").permitAll()
                 // Public Endpoints (View Clubs, View Reviews)
                 .pathMatchers(HttpMethod.GET, "/club/**").permitAll()
@@ -68,34 +66,8 @@ public class ApiGatewayAuthetication {
             .exceptionHandling(exceptionHandling -> exceptionHandling
                 .accessDeniedHandler(customAuthenticationHandler)
                 .authenticationEntryPoint(customAuthenticationHandler)
-            )
-            .httpBasic(Customizer.withDefaults());
+            );
 
         return http.build();
-    }
-    
-    @Bean
-    public ReactiveUserDetailsService userDetailsService(WebClient.Builder webClientBuilder, BCryptPasswordEncoder encoder) {
-        return username -> {
-            return webClientBuilder.build()
-                .get()
-                .uri(userServiceUrl + "/user/email/" + username)
-                .retrieve()
-                .bodyToMono(UserDto.class)
-                .map(u -> User.withUsername(u.getEmail())
-                    .password(encoder.encode(u.getPassword()))
-                    .roles(u.getRole())
-                    .build())
-                .onErrorResume(e -> {
-                    System.err.println("Authentication failed for user: " + username + " - " + e.getMessage());
-                    return Mono.empty();
-                })
-                .switchIfEmpty(Mono.error(new UsernameNotFoundException("User not found")));
-        };
-    }
-
-    @Bean
-    public BCryptPasswordEncoder getEncoder() {
-        return new BCryptPasswordEncoder();
     }
 }

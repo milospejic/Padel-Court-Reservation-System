@@ -48,6 +48,7 @@ fi
 echo -e "${BLUE}Setting up namespace: ${NAMESPACE}...${NC}"
 kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 kubectl label namespace $NAMESPACE istio-injection=enabled --overwrite
+kubectl create secret generic jwt-secret --from-literal=JWT_SECRET=5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437 
 
 # 5. Prepare Configuration for Kustomize 
 echo -e "${BLUE}Preparing config-repo for Kustomize...${NC}"
@@ -113,18 +114,29 @@ for service in "${services[@]}"; do
 done
 echo -e "${GREEN}All images built successfully.${NC}"
 
-# 8. Deploy to Kubernetes
+# 8. Create Kubernetes Secrets
+
+echo -e "${BLUE}Creating Kubernetes Secrets...${NC}"
+kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+SECRET_VALUE="${JWT_SECRET:-5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437}"
+kubectl create secret generic jwt-secret \
+    --namespace $NAMESPACE \
+    --from-literal=JWT_SECRET="$SECRET_VALUE" \
+    --dry-run=client -o yaml | kubectl apply -f -
+echo -e "${GREEN}Secret 'jwt-secret' created in namespace '$NAMESPACE'.${NC}"
+
+# 9. Deploy to Kubernetes
 echo -e "${BLUE}Applying Kubernetes Manifests...${NC}"
 kubectl apply -k kubernetes/overlays/dev
 
-# 9. Wait for Config Server
+# 10. Wait for Config Server
 echo -e "${BLUE}Waiting for Config Server to be ready...${NC}"
 kubectl wait --namespace $NAMESPACE \
   --for=condition=Ready pod \
   --selector=app=config-server \
   --timeout=180s
 
-# 10. Wait for API Gateway
+# 11. Wait for API Gateway
 echo -e "${BLUE}Waiting for API Gateway to be ready...${NC}"
 kubectl wait --namespace $NAMESPACE \
   --for=condition=Ready pod \
