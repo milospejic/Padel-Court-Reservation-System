@@ -112,6 +112,11 @@ for service in "${services[@]}"; do
     
     cd ..
 done
+
+echo -e "${BLUE}Building Custom Fluentd Image...${NC}"
+eval $(minikube docker-env)
+docker build -t "hands-on/fluentd:v1" kubernetes/base/efk/
+
 echo -e "${GREEN}All images built successfully.${NC}"
 
 # 8. Create Kubernetes Secrets
@@ -125,10 +130,27 @@ kubectl create secret generic jwt-secret \
     --dry-run=client -o yaml | kubectl apply -f -
 echo -e "${GREEN}Secret 'jwt-secret' created in namespace '$NAMESPACE'.${NC}"
 
+
+
 # 9. Deploy to Kubernetes
+
+echo -e "${BLUE}Creating Logging Namespace...${NC}"
+kubectl create namespace logging --dry-run=client -o yaml | kubectl apply -f -
+
 echo -e "${BLUE}Applying Kubernetes Manifests...${NC}"
 kubectl apply -k kubernetes/overlays/dev
 
+echo -e "${BLUE}Waiting for Elasticsearch to be ready...${NC}"
+kubectl wait --namespace logging \
+  --for=condition=Ready pod \
+  --selector=app=elasticsearch \
+  --timeout=300s
+
+echo -e "${BLUE}Deploying EFK Components...${NC}"
+kubectl apply -f kubernetes/base/efk/fluentd-hands-on-configmap.yml
+kubectl apply -f kubernetes/base/efk/fluentd-ds.yml
+kubectl apply -f kubernetes/base/efk/elasticsearch.yml
+kubectl apply -f kubernetes/base/efk/kibana.yml
 # 10. Wait for Config Server
 echo -e "${BLUE}Waiting for Config Server to be ready...${NC}"
 kubectl wait --namespace $NAMESPACE \
@@ -143,8 +165,17 @@ kubectl wait --namespace $NAMESPACE \
   --selector=app=api-gateway \
   --timeout=180s
 
+
+echo -e "${BLUE}Waiting for Fluentd DaemonSet...${NC}"
+kubectl wait --namespace kube-system \
+  --for=condition=Ready pod \
+  -l app=fluentd \
+  --timeout=120s
+
 echo -e "\n${GREEN}======================================================${NC}"
 echo -e "${GREEN}   DEPLOYMENT SUCCESSFUL!   ${NC}"
 echo -e "${GREEN}======================================================${NC}"
 echo -e "IMPORTANT: Run the tunnel in a separate terminal now:${NC}"
 echo -e "\n   ${RED}minikube tunnel${NC}\n"
+
+
