@@ -80,7 +80,6 @@ fi
 cd ..
 
 services=(
-    "config-server"
     "eureka-server"
     "user-service"
     "club-service"
@@ -152,12 +151,7 @@ kubectl wait --namespace logging \
   --selector=app=elasticsearch \
   --timeout=300s
 
-# 10. Wait for Config Server
-echo -e "${BLUE}Waiting for Config Server to be ready...${NC}"
-kubectl wait --namespace $NAMESPACE \
-  --for=condition=Ready pod \
-  --selector=app=config-server \
-  --timeout=180s
+
 
 # 11. Wait for API Gateway
 echo -e "${BLUE}Waiting for API Gateway to be ready...${NC}"

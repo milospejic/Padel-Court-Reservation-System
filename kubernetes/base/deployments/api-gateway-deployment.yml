@@ -12,10 +12,6 @@ spec:
       labels:
         app: api-gateway
     spec:
-      initContainers:
-        - name: wait-for-config-server
-          image: busybox
-          command: ['sh', '-c', 'until wget -q -O - http://config-server:8888/actuator/health; do echo waiting for config-server; sleep 2; done']
       containers:
         - name: api-gateway
           image: milospejic001/api-gateway:latest
@@ -23,12 +19,14 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xmx192m"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: http://eureka-server:8761/eureka
             - name: APP_SERVICES_USER_URL
               value: http://user-service:8770
-            - name: CONFIG_SERVER_URL
-              value: http://config-server:8888/
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:file:/app/config/application.yml,optional:file:/app/config/api-gateway.yml"
             - name: SPRING_PROFILES_ACTIVE
               value: docker
             - name: JWT_SECRET
@@ -43,3 +41,10 @@ spec:
                       initialDelaySeconds: 120
                       periodSeconds: 10
                       failureThreshold: 5
+          volumeMounts:
+                  - name: config-volume
+                    mountPath: /app/config
+      volumes:
+        - name: config-volume
+          configMap:
+            name: config-repo

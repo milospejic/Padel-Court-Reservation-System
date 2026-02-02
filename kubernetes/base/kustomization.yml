@@ -7,12 +7,10 @@ resources:
   - deployments/postgres-deployment.yml
   - deployments/rabbitmq-deployment.yml
   - deployments/eureka-server-deployment.yml
-  - deployments/config-server-deployment.yml
 
   - services/postgres-service.yml
   - services/rabbitmq-service.yml
   - services/eureka-server-service.yml
-  - services/config-server-service.yml
 
   - deployments/api-gateway-deployment.yml
   - deployments/user-service-deployment.yml
