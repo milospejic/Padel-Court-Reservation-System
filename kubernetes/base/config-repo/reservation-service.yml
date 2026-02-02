@@ -2,15 +2,22 @@ server:
   port: 8082
 
 spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/reservation_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
   r2dbc:
     url: r2dbc:postgresql://${DB_HOST:localhost}:5432/reservation_db
     username: postgres
     password: postgres
+
   sql:
-      init:
-        mode: always
+    init:
+      mode: always
 
 app:
   services:
-    user-url: http://user-service:8770
-    club-url: http://club-service:8081
+    user-url: http://user-service
+    club-url: http://club-service

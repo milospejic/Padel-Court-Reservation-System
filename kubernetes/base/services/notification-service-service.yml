@@ -4,6 +4,7 @@ metadata:
   name: notification-service
 spec:
   ports:
-    - port: 8084
+    - port: 80
+      targetPort: 8084
   selector:
     app: notification-service

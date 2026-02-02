@@ -21,8 +21,6 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-Xmx192m"
-            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: http://eureka-server:8761/eureka
             - name: APP_SERVICES_USER_URL
               value: http://user-service:8770
             - name: SPRING_CONFIG_IMPORT

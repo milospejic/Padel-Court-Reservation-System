@@ -51,9 +51,9 @@ kubectl label namespace $NAMESPACE istio-injection=enabled --overwrite
 kubectl create secret generic jwt-secret --from-literal=JWT_SECRET=5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437 
 
 # 5. Prepare Configuration for Kustomize 
-echo -e "${BLUE}Preparing config-repo for Kustomize...${NC}"
-rm -rf kubernetes/base/config-repo
-cp -r config-repo kubernetes/base/
+# echo -e "${BLUE}Preparing config-repo for Kustomize...${NC}"
+# rm -rf kubernetes/base/config-repo
+# cp -r config-repo kubernetes/base/
 
 # 6. Patch Deployment YAMLs (Crucial for Local Dev)
 echo -e "${BLUE}Patching Deployments to use local images (IfNotPresent)...${NC}"
@@ -80,7 +80,6 @@ fi
 cd ..
 
 services=(
-    "eureka-server"
     "user-service"
     "club-service"
     "reservation-service"
@@ -112,9 +111,9 @@ for service in "${services[@]}"; do
     cd ..
 done
 
-echo -e "${BLUE}Building Custom Fluentd Image...${NC}"
-eval $(minikube docker-env)
-docker build -t "hands-on/fluentd:v1" kubernetes/base/efk/
+#echo -e "${BLUE}Building Custom Fluentd Image...${NC}"
+#eval $(minikube docker-env)
+#docker build -t "hands-on/fluentd:v1" kubernetes/base/efk/
 
 echo -e "${GREEN}All images built successfully.${NC}"
 
@@ -133,23 +132,23 @@ echo -e "${GREEN}Secret 'jwt-secret' created in namespace '$NAMESPACE'.${NC}"
 
 # 9. Deploy to Kubernetes
 
-echo -e "${BLUE}Creating Logging Namespace...${NC}"
-kubectl create namespace logging --dry-run=client -o yaml | kubectl apply -f -
+#echo -e "${BLUE}Creating Logging Namespace...${NC}"
+#kubectl create namespace logging --dry-run=client -o yaml | kubectl apply -f -
 
 echo -e "${BLUE}Applying Kubernetes Manifests (Apps)...${NC}"
 kubectl apply -k kubernetes/overlays/dev
 
 echo -e "${BLUE}Deploying EFK Components...${NC}"
-kubectl apply -f kubernetes/base/efk/fluentd-hands-on-configmap.yml -n kube-system
-kubectl apply -f kubernetes/base/efk/fluentd-ds.yml
-kubectl apply -f kubernetes/base/efk/elasticsearch.yml -n logging
-kubectl apply -f kubernetes/base/efk/kibana.yml -n logging
+#kubectl apply -f kubernetes/base/efk/fluentd-hands-on-configmap.yml -n kube-system
+#kubectl apply -f kubernetes/base/efk/fluentd-ds.yml
+#kubectl apply -f kubernetes/base/efk/elasticsearch.yml -n logging
+#kubectl apply -f kubernetes/base/efk/kibana.yml -n logging
 
-echo -e "${BLUE}Waiting for Elasticsearch to be ready...${NC}"
-kubectl wait --namespace logging \
-  --for=condition=Ready pod \
-  --selector=app=elasticsearch \
-  --timeout=300s
+#echo -e "${BLUE}Waiting for Elasticsearch to be ready...${NC}"
+#kubectl wait --namespace logging \
+ # --for=condition=Ready pod \
+  #--selector=app=elasticsearch \
+  #--timeout=300s
 
 
 
@@ -161,11 +160,11 @@ kubectl wait --namespace $NAMESPACE \
   --timeout=180s
 
 
-echo -e "${BLUE}Waiting for Fluentd DaemonSet...${NC}"
-kubectl wait --namespace kube-system \
-  --for=condition=Ready pod \
-  -l app=fluentd \
-  --timeout=120s
+#echo -e "${BLUE}Waiting for Fluentd DaemonSet...${NC}"
+#kubectl wait --namespace kube-system \
+ # --for=condition=Ready pod \
+  #-l app=fluentd \
+  #--timeout=120s
 
 echo -e "\n${GREEN}======================================================${NC}"
 echo -e "${GREEN}   DEPLOYMENT SUCCESSFUL!   ${NC}"

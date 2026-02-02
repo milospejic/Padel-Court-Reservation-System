@@ -4,6 +4,7 @@ metadata:
   name: user-service
 spec:
   ports:
-    - port: 8770
+    - port: 80
+      targetPort: 8770
   selector:
     app: user-service

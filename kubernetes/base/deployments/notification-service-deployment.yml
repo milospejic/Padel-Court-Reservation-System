@@ -40,8 +40,6 @@ spec:
               value: "rabbitmq"
             - name: SPRING_RABBITMQ_PORT
               value: "5672"
-            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: http://eureka-server:8761/eureka
             - name: SPRING_CONFIG_IMPORT
               value: "optional:file:/app/config/application.yml,optional:file:/app/config/notification-service.yml"
             - name: SPRING_PROFILES_ACTIVE

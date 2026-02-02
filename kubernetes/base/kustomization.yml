@@ -6,11 +6,9 @@ resources:
 
   - deployments/postgres-deployment.yml
   - deployments/rabbitmq-deployment.yml
-  - deployments/eureka-server-deployment.yml
 
   - services/postgres-service.yml
   - services/rabbitmq-service.yml
-  - services/eureka-server-service.yml
 
   - deployments/api-gateway-deployment.yml
   - deployments/user-service-deployment.yml
@@ -37,7 +35,6 @@ configMapGenerator:
     files:
       - config-repo/application.yml
       - config-repo/api-gateway.yml
-      - config-repo/eureka-server.yml
       - config-repo/user-service.yml
       - config-repo/club-service.yml
       - config-repo/reservation-service.yml

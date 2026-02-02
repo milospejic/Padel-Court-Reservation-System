@@ -3,15 +3,89 @@ server:
 
 spring:
   cloud:
+    loadbalancer:
+      enabled: false   
     gateway:
       discovery:
         locator:
-          enabled: true
+          enabled: false
           lower-case-service-id: true
+      routes:
+        # --- USER SERVICE ---
+        - id: user-service
+          uri: http://user-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/user/**, /auth/**
+        - id: user-service-docs
+          uri: http://user-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/user-service/v3/api-docs
+          filters:
+            - SetPath=/v3/api-docs
+
+        # --- RESERVATION SERVICE ---
+        - id: reservation-service
+          uri: http://reservation-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/reservation/**
+        - id: reservation-service-docs
+          uri: http://reservation-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/reservation-service/v3/api-docs
+          filters:
+            - SetPath=/v3/api-docs
+
+        # --- CLUB SERVICE ---
+        - id: club-service
+          uri: http://club-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/club/**
+        - id: club-service-docs
+          uri: http://club-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/club-service/v3/api-docs
+          filters:
+            - SetPath=/v3/api-docs
+
+        # --- REVIEW SERVICE ---
+        - id: review-service
+          uri: http://review-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/review/**
+        - id: review-service-docs
+          uri: http://review-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/review-service/v3/api-docs
+          filters:
+            - SetPath=/v3/api-docs
+
+        # --- NOTIFICATION SERVICE ---
+        - id: notification-service
+          uri: http://notification-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/notification/**
+        - id: notification-service-docs
+          uri: http://notification-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/notification-service/v3/api-docs
+          filters:
+            - SetPath=/v3/api-docs
+
+        # --- CLUB COMPOSITE SERVICE ---
+        - id: club-composite-service
+          uri: http://club-composite-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/club-composite/**
+        - id: club-composite-service-docs
+          uri: http://club-composite-service.padel-dev.svc.cluster.local
+          predicates:
+            - Path=/club-composite-service/v3/api-docs
+          filters:
+            - SetPath=/v3/api-docs
 
 app:
   services:
-    user-url: http://user-service:8770
+    user-url: http://user-service.padel-dev.svc.cluster.local
 
 springdoc:
   swagger-ui:

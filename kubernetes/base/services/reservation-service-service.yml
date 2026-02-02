@@ -4,6 +4,7 @@ metadata:
   name: reservation-service
 spec:
   ports:
-    - port: 8082
+    - port: 80
+      targetPort: 8082
   selector:
     app: reservation-service

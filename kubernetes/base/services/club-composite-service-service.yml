@@ -4,7 +4,7 @@ metadata:
   name: club-composite-service
 spec:
   ports:
-    - port: 8085
+    - port: 80
       targetPort: 8085
   selector:
     app: club-composite-service

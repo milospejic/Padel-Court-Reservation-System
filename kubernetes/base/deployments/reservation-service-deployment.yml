@@ -40,8 +40,6 @@ spec:
               value: "rabbitmq"
             - name: SPRING_RABBITMQ_PORT
               value: "5672"
-            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: http://eureka-server:8761/eureka
             - name: APP_SERVICES_USER_URL
               value: http://user-service:8770
             - name: APP_SERVICES_CLUB_URL
