@@ -18,7 +18,7 @@ public class ClubCompositeServiceApplication {
     }
 
     @Bean
-    @LoadBalanced
+    //@LoadBalanced
     public WebClient.Builder loadBalancedWebClientBuilder() {
         return WebClient.builder();
     }
