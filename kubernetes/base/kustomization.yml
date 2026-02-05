@@ -10,7 +10,6 @@ resources:
   - services/postgres-service.yml
   - services/rabbitmq-service.yml
 
-  - deployments/api-gateway-deployment.yml
   - deployments/user-service-deployment.yml
   - deployments/club-service-deployment.yml
   - deployments/reservation-service-deployment.yml
@@ -18,7 +17,6 @@ resources:
   - deployments/notification-service-deployment.yml
   - deployments/club-composite-service-deployment.yml
 
-  - services/api-gateway-service.yml
   - services/user-service-service.yml
   - services/club-service-service.yml
   - services/reservation-service-service.yml
@@ -29,12 +27,14 @@ resources:
   - istio/istio-gateway.yml
   - istio/istio-virtual-service.yml
   - istio/istio-destination-rule.yml
+  - istio/istio-authentication.yml        
+  - istio/istio-authorization.yml        
+  - istio/istio-envoy-filter.yml 
 
 configMapGenerator:
   - name: config-repo
     files:
       - config-repo/application.yml
-      - config-repo/api-gateway.yml
       - config-repo/user-service.yml
       - config-repo/club-service.yml
       - config-repo/reservation-service.yml

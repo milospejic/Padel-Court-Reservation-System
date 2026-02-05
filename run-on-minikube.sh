@@ -85,7 +85,6 @@ services=(
     "reservation-service"
     "review-service"
     "notification-service"
-    "api-gateway"
     "club-composite-service"
 )
 
@@ -151,13 +150,6 @@ echo -e "${BLUE}Deploying EFK Components...${NC}"
   #--timeout=300s
 
 
-
-# 11. Wait for API Gateway
-echo -e "${BLUE}Waiting for API Gateway to be ready...${NC}"
-kubectl wait --namespace $NAMESPACE \
-  --for=condition=Ready pod \
-  --selector=app=api-gateway \
-  --timeout=180s
 
 
 #echo -e "${BLUE}Waiting for Fluentd DaemonSet...${NC}"

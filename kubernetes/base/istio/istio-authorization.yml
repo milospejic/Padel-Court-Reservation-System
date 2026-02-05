@@ -1,0 +1,68 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: padel-authz-policy
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      istio: ingressgateway
+  action: ALLOW
+  rules:
+  - to:
+    - operation:
+        paths: ["/auth/*", "/actuator/*", "*/v3/api-docs", "/swagger-ui/*", "/club-composite/*"]
+    - operation:
+        methods: ["GET"]
+        paths: ["/club/*", "/review/*"]
+
+  - from:
+    - source:
+        requestPrincipals: ["*"] 
+    when:
+    - key: request.auth.claims[role]
+      values: ["USER", "ADMIN"]
+    to:
+    - operation:
+        paths: ["/reservation/*"]
+    - operation:
+        methods: ["POST"]
+        paths: ["/review/*"]
+
+  - from:
+    - source:
+        requestPrincipals: ["*"]
+    when:
+    - key: request.auth.claims[role]
+      values: ["ADMIN"]
+    to:
+    - operation:
+        methods: ["POST", "PUT", "DELETE"]
+        paths: ["/club/*"]
+    - operation:
+        methods: ["DELETE"]
+        paths: ["/review/*"]
+    - operation:
+        paths: ["/notification/*"]
+
+  - from:
+    - source:
+        requestPrincipals: ["*"]
+    when:
+    - key: request.auth.claims[role]
+      values: ["ADMIN", "OWNER"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT"]
+        paths: ["/user/*"]
+
+  - from:
+    - source:
+        requestPrincipals: ["*"]
+    when:
+    - key: request.auth.claims[role]
+      values: ["OWNER"]
+    to:
+    - operation:
+        methods: ["DELETE"]
+        paths: ["/user/*"]

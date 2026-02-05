@@ -8,8 +8,61 @@ spec:
   gateways:
   - padel-gateway
   http:
-  - route:
+  - match:
+    - uri:
+        prefix: /auth
+    - uri:
+        prefix: /user
+    route:
     - destination:
-        host: api-gateway
+        host: user-service
         port:
-          number: 8080
+          number: 80
+  - match:
+    - uri:
+        prefix: /club-composite
+    route:
+    - destination:
+        host: club-composite-service
+        port:
+          number: 80
+  - match:
+    - uri:
+        prefix: /club
+    route:
+    - destination:
+        host: club-service
+        port:
+          number: 80
+  - match:
+    - uri:
+        prefix: /reservation
+    route:
+    - destination:
+        host: reservation-service
+        port:
+          number: 80
+  - match:
+    - uri:
+        prefix: /review
+    route:
+    - destination:
+        host: review-service
+        port:
+          number: 80
+  - match:
+    - uri:
+        prefix: /notification
+    route:
+    - destination:
+        host: notification-service
+        port:
+          number: 80
+  - match:
+    - uri:
+        prefix: /v3/api-docs
+    route:
+    - destination:
+        host: user-service
+        port:
+          number: 80

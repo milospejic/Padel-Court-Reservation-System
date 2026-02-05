@@ -22,6 +22,7 @@ public class JwtUtil {
     public String generateToken(String userId, String role) {
         return Jwts.builder()
                 .setSubject(userId)
+                .setIssuer("padel-system")
                 .claim("role", role)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
