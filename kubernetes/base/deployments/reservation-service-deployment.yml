@@ -9,6 +9,8 @@ spec:
       app: reservation-service
   template:
     metadata:
+      annotations:
+        proxy.istio.io/config: '{ "holdApplicationUntilProxyReceivesReady": true }'
       labels:
         app: reservation-service
     spec:

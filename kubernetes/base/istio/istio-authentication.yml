@@ -12,12 +12,12 @@ spec:
     forwardOriginalToken: true
     fromHeaders:
     - name: Authorization
-      prefix: "Bearer"
+      prefix: "Bearer "
 
     jwks: |
       { "keys": [ {
           "kty": "oct",
           "kid": "padel-key",
           "alg": "HS256",
-          "k": "UzY3NTY2QjU5NzAzMzczMzY3NjM5NzkyRjQyM0Y0NTI4NDgyQjRENjI1MTY1NTQ2ODU3NkQ1QTcxMzQ3NDM3"
+          "k": "${JWT_SECRET}"
         } ] }

@@ -9,6 +9,8 @@ spec:
       app: notification-service
   template:
     metadata:
+      annotations:
+        proxy.istio.io/config: '{ "holdApplicationUntilProxyReceivesReady": true }'
       labels:
         app: notification-service
     spec:

@@ -134,6 +134,13 @@ echo -e "${GREEN}Secret 'jwt-secret' created in namespace '$NAMESPACE'.${NC}"
 #echo -e "${BLUE}Creating Logging Namespace...${NC}"
 #kubectl create namespace logging --dry-run=client -o yaml | kubectl apply -f -
 
+echo -e "${BLUE}Applying Istio System Policies...${NC}"
+
+sed "s|\${JWT_SECRET}|$SECRET_VALUE|g" kubernetes/base/istio/istio-authentication.yml | kubectl apply -f -
+
+kubectl apply -f kubernetes/base/istio/istio-authorization.yml
+kubectl apply -f kubernetes/base/istio/istio-envoy-filter.yml
+
 echo -e "${BLUE}Applying Kubernetes Manifests (Apps)...${NC}"
 kubectl apply -k kubernetes/overlays/dev
 

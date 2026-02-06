@@ -23,12 +23,21 @@ public class ReservationServiceImplementation implements ReservationService {
     public Mono<Reservation> createReservation(Reservation body) {
         return repo.save(apiToEntity(body))
                 .doOnSuccess(saved -> {
-                    NotificationRequest notification = new NotificationRequest(
-                        body.getUserEmail(),
-                        "Reservation Confirmed",
-                        "Your reservation for court " + body.getCourtNumber() + " is confirmed."
-                    );
-                    rabbitTemplate.convertAndSend("notification-queue", notification);
+                    Mono.fromRunnable(() -> {
+                        try {
+                            NotificationRequest notification = new NotificationRequest(
+                                body.getUserEmail(),
+                                "Reservation Confirmed",
+                                "Your reservation for court " + body.getCourtNumber() + " is confirmed."
+                            );
+                            rabbitTemplate.convertAndSend("notification-queue", notification);
+                            System.out.println(">>> Notification sent for reservation: " + saved.getId());
+                        } catch (Exception e) {
+                            System.err.println(">>> FAILED to send notification: " + e.getMessage());
+                        }
+                    })
+                    .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic()) 
+                    .subscribe(); 
                 })
                 .map(this::entityToApi);
     }

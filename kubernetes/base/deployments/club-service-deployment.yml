@@ -9,6 +9,8 @@ spec:
       app: club-service
   template:
     metadata:
+      annotations:
+        proxy.istio.io/config: '{ "holdApplicationUntilProxyReceivesReady": true }'
       labels:
         app: club-service
     spec:

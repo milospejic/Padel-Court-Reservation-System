@@ -27,9 +27,7 @@ resources:
   - istio/istio-gateway.yml
   - istio/istio-virtual-service.yml
   - istio/istio-destination-rule.yml
-  - istio/istio-authentication.yml        
-  - istio/istio-authorization.yml        
-  - istio/istio-envoy-filter.yml 
+ 
 
 configMapGenerator:
   - name: config-repo

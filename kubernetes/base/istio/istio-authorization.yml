@@ -14,7 +14,7 @@ spec:
         paths: ["/auth/*", "/actuator/*", "*/v3/api-docs", "/swagger-ui/*", "/club-composite/*"]
     - operation:
         methods: ["GET"]
-        paths: ["/club/*", "/review/*"]
+        paths: ["/club*", "/review*"] 
 
   - from:
     - source:
@@ -24,10 +24,10 @@ spec:
       values: ["USER", "ADMIN"]
     to:
     - operation:
-        paths: ["/reservation/*"]
+        paths: ["/reservation*"]
     - operation:
         methods: ["POST"]
-        paths: ["/review/*"]
+        paths: ["/review*"]
 
   - from:
     - source:
@@ -38,12 +38,12 @@ spec:
     to:
     - operation:
         methods: ["POST", "PUT", "DELETE"]
-        paths: ["/club/*"]
+        paths: ["/club*"]
     - operation:
         methods: ["DELETE"]
-        paths: ["/review/*"]
+        paths: ["/review*"]
     - operation:
-        paths: ["/notification/*"]
+        paths: ["/notification*"]
 
   - from:
     - source:
@@ -53,8 +53,7 @@ spec:
       values: ["ADMIN", "OWNER"]
     to:
     - operation:
-        methods: ["GET", "POST", "PUT"]
-        paths: ["/user/*"]
+        paths: ["/user*"]
 
   - from:
     - source:
@@ -65,4 +64,4 @@ spec:
     to:
     - operation:
         methods: ["DELETE"]
-        paths: ["/user/*"]
+        paths: ["/user*"]
