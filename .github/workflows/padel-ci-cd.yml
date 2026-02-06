@@ -15,10 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
        matrix:
-        service: [
-          'config-server',
-          'api-gateway', 
-          'eureka-server', 
+        service: [ 
           'user-service', 
           'club-service', 
           'reservation-service', 
@@ -60,9 +57,6 @@ jobs:
       fail-fast: false 
       matrix:
         service: [
-          'config-server',
-          'api-gateway', 
-          'eureka-server', 
           'user-service', 
           'club-service', 
           'reservation-service', 
@@ -103,9 +97,6 @@ jobs:
           fail-fast: false
           matrix:
             service: [
-              "config-server",
-              "api-gateway", 
-              "eureka-server", 
               "user-service", 
               "club-service", 
               "reservation-service", 
