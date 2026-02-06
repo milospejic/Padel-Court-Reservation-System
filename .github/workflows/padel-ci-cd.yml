@@ -125,7 +125,5 @@ jobs:
 
       - name: Build & Push ${{ matrix.service }}
         run: |
-          docker compose build ${{ matrix.service }}
-          docker compose push ${{ matrix.service }}
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest ./${{ matrix.service }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest
