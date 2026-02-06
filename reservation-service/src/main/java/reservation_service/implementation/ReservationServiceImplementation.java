@@ -76,13 +76,17 @@ public class ReservationServiceImplementation implements ReservationService {
     }
 
     public static class NotificationRequest {
-        public String recipient;
+        public String recipientEmail; 
         public String subject;
         public String message;
-        public NotificationRequest(String recipient, String subject, String message) {
-            this.recipient = recipient; this.subject = subject; this.message = message;
+
+        public NotificationRequest(String recipientEmail, String subject, String message) {
+            this.recipientEmail = recipientEmail;
+            this.subject = subject;
+            this.message = message;
         }
-        public String getRecipient() { return recipient; }
+
+        public String getRecipientEmail() { return recipientEmail; }
         public String getSubject() { return subject; }
         public String getMessage() { return message; }
     }
