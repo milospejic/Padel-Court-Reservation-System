@@ -44,6 +44,13 @@ else
     echo -e "${GREEN}Istio is already installed.${NC}"
 fi
 
+echo -e "${BLUE}Installing Istio Addons (Prometheus, Grafana, Kiali, Zipkin)...${NC}"
+ISTIO_ADDON_URL="https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons"
+kubectl apply -f "${ISTIO_ADDON_URL}/prometheus.yaml"
+kubectl apply -f "${ISTIO_ADDON_URL}/grafana.yaml"
+kubectl apply -f "${ISTIO_ADDON_URL}/kiali.yaml"
+kubectl apply -f "${ISTIO_ADDON_URL}/extras/zipkin.yaml"
+
 # 4. Create Namespace and Enable Injection
 echo -e "${BLUE}Setting up namespace: ${NAMESPACE}...${NC}"
 kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
