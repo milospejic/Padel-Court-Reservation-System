@@ -13,6 +13,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import util.exceptions.InvalidRequestException;
 import util.exceptions.NoDataFoundException;
+import util.exceptions.ServiceUnavailableException;
 
 @Component
 public class ClubCompositeIntegration implements ClubService, ReviewService {
@@ -36,7 +37,12 @@ public class ClubCompositeIntegration implements ClubService, ReviewService {
                 .uri(clubServiceUrl + "/club/" + id)
                 .retrieve()
                 .bodyToMono(Club.class)
-                .onErrorMap(WebClientResponseException.NotFound.class, ex -> new NoDataFoundException("Club not found: " + id));
+                .onErrorMap(WebClientResponseException.class, ex -> {
+                    if (ex.getStatusCode().value() == 503) {
+                         return new ServiceUnavailableException("Club service is currently unavailable");
+                    }
+                    return handleException(ex);
+                });
     }
 
     @Override
@@ -72,7 +78,11 @@ public class ClubCompositeIntegration implements ClubService, ReviewService {
         return webClient.get()
                 .uri(reviewServiceUrl + "/review?clubId=" + clubId)
                 .retrieve()
-                .bodyToFlux(Review.class);
+                .bodyToFlux(Review.class)
+                .onErrorResume(ex -> {
+                    System.out.println("Review service failed: " + ex.getMessage());
+                    return Flux.empty();
+                });
     }
 
     @Override

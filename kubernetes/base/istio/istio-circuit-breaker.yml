@@ -1,0 +1,84 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: club-service-cb
+spec:
+  host: club-service
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1024
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: review-service-cb
+spec:
+  host: review-service
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1024
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: reservation-service-cb
+spec:
+  host: reservation-service
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1024
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: notification-service-cb
+spec:
+  host: notification-service
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1024
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: user-service-cb
+spec:
+  host: user-service
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1024
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100

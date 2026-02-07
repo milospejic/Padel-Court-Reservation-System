@@ -26,7 +26,7 @@ resources:
 
   - istio/istio-gateway.yml
   - istio/istio-virtual-service.yml
-  - istio/istio-destination-rule.yml
+  - istio/istio-circuit-breaker.yml
  
 
 configMapGenerator:

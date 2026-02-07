@@ -1,10 +1,15 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
-  name: user-service-circuit-breaker
+  name: review-service-cb
+  namespace: padel-dev
 spec:
-  host: user-service
+  host: review-service
   trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1
+        maxRequestsPerConnection: 1
     outlierDetection:
       consecutive5xxErrors: 5
       interval: 10s
