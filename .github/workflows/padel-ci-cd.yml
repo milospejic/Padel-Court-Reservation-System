@@ -34,8 +34,10 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Install Shared API Library
-        run: mvn install -DskipTests -f api/pom.xml
+      - name: Install Shared Libraries
+        run: |
+          mvn install -DskipTests -f util/pom.xml
+          mvn install -DskipTests -f api/pom.xml
 
       - name: Build JAR (Skip Tests)
         working-directory: ./${{ matrix.service }}
@@ -75,8 +77,10 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Install Shared API Library
-        run: mvn install -DskipTests -f api/pom.xml
+      - name: Install Shared Libraries
+        run: |
+          mvn install -DskipTests -f util/pom.xml
+          mvn install -DskipTests -f api/pom.xml
 
       - name: Run Tests for ${{ matrix.service }}
         run: mvn -B -f ${{ matrix.service }}/pom.xml test

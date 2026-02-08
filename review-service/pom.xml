@@ -108,6 +108,11 @@
 		    <groupId>io.zipkin.reporter2</groupId>
 		    <artifactId>zipkin-reporter-brave</artifactId>
 		</dependency>
+		<dependency>
+		    <groupId>com.padel</groupId>
+		    <artifactId>util</artifactId>
+		    <version>0.0.1-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>

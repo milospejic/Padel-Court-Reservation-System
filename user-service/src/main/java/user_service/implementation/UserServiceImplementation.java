@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
-import user_service.model.UserModel;
+import user_service.mapper.UserMapper;
 import user_service.repository.UserServiceRepository;
 import util.exceptions.EntityAlreadyExistsException;
 import util.exceptions.NoDataFoundException;
@@ -14,24 +14,29 @@ import util.exceptions.NoDataFoundException;
 @RestController
 public class UserServiceImplementation implements UserService {
 
+    private final UserServiceRepository repo;
+    private final PasswordEncoder passwordEncoder;
+    private final UserMapper mapper;
+
     @Autowired
-    private UserServiceRepository repo;
-    
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public UserServiceImplementation(UserServiceRepository repo, PasswordEncoder passwordEncoder, UserMapper mapper) {
+        this.repo = repo;
+        this.passwordEncoder = passwordEncoder;
+        this.mapper = mapper;
+    }
 
     @Override
     public Mono<User> getUser(int id) {
         return repo.findById(id)
                 .switchIfEmpty(Mono.error(new NoDataFoundException("User not found: " + id)))
-                .map(this::entityToApi);
+                .map(mapper::entityToApi);
     }
 
     @Override
     public Mono<User> getUserByEmail(String email) {
         return repo.findByEmail(email)
                 .switchIfEmpty(Mono.error(new NoDataFoundException("User not found: " + email)))
-                .map(this::entityToApi);
+                .map(mapper::entityToApi);
     }
 
     @Override
@@ -42,30 +47,14 @@ public class UserServiceImplementation implements UserService {
                     if (Boolean.TRUE.equals(exists)) {
                         return Mono.error(new EntityAlreadyExistsException("User exists: " + body.getEmail()));
                     }
-                    
-                    User userToSave = body;
-                    userToSave.setPassword(passwordEncoder.encode(body.getPassword()));
-                    return repo.save(apiToEntity(body));
+                    body.setPassword(passwordEncoder.encode(body.getPassword()));
+                    return repo.save(mapper.apiToEntity(body));
                 })
-                .map(this::entityToApi);
+                .map(mapper::entityToApi);
     }
 
     @Override
     public Mono<Void> deleteUser(int id) {
         return repo.deleteById(id);
-    }
-
-    private User entityToApi(UserModel entity) {
-        return new User(
-            entity.getId(),
-            entity.getEmail(),
-            null,
-            entity.getRole(),
-            null 
-        );
-    }
-
-    private UserModel apiToEntity(User api) {
-        return new UserModel(api.getEmail(), api.getPassword(), api.getRole());
     }
 }

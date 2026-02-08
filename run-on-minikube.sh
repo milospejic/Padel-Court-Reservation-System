@@ -75,6 +75,11 @@ echo -e "${GREEN}Deployments patched.${NC}"
 
 # 7. Build Java & Docker Images
 
+echo -e "${BLUE}Building Shared Libraries...${NC}"
+cd util
+chmod +x mvnw
+./mvnw clean install -DskipTests
+cd ..
 
 echo -e "${BLUE}Building Shared API Library...${NC}"
 cd api

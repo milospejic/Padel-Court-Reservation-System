@@ -7,21 +7,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reservation_service.model.ReservationModel;
+import reservation_service.mapper.ReservationMapper;
 import reservation_service.repository.ReservationRepository;
 
 @RestController
 public class ReservationServiceImplementation implements ReservationService {
 
-    @Autowired
-    private ReservationRepository repo;
+    private final ReservationRepository repo;
+    private final ReservationMapper mapper;
+    private final RabbitTemplate rabbitTemplate;
 
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    public ReservationServiceImplementation(ReservationRepository repo, ReservationMapper mapper, RabbitTemplate rabbitTemplate) {
+        this.repo = repo;
+        this.mapper = mapper;
+        this.rabbitTemplate = rabbitTemplate;
+    }
 
     @Override
     public Mono<Reservation> createReservation(Reservation body) {
-        return repo.save(apiToEntity(body))
+        return repo.save(mapper.apiToEntity(body))
                 .doOnSuccess(saved -> {
                     Mono.fromRunnable(() -> {
                         try {
@@ -36,18 +41,18 @@ public class ReservationServiceImplementation implements ReservationService {
                             System.err.println(">>> FAILED to send notification: " + e.getMessage());
                         }
                     })
-                    .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic()) 
-                    .subscribe(); 
+                    .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                    .subscribe();
                 })
-                .map(this::entityToApi);
+                .map(mapper::entityToApi);
     }
 
     @Override
     public Flux<Reservation> getReservations(String email) {
         if (email != null && !email.isEmpty()) {
-            return repo.findByUserEmail(email).map(this::entityToApi);
+            return repo.findByUserEmail(email).map(mapper::entityToApi);
         }
-        return repo.findAll().map(this::entityToApi);
+        return repo.findAll().map(mapper::entityToApi);
     }
 
     @Override
@@ -55,28 +60,8 @@ public class ReservationServiceImplementation implements ReservationService {
         return repo.deleteById(id);
     }
 
-    private Reservation entityToApi(ReservationModel entity) {
-        return new Reservation(
-            entity.getId(),
-            entity.getUserEmail(),
-            entity.getClubId(),
-            entity.getCourtNumber(),
-            entity.getReservationTime(),
-            null
-        );
-    }
-
-    private ReservationModel apiToEntity(Reservation api) {
-        return new ReservationModel(
-            api.getUserEmail(),
-            api.getClubId(),
-            api.getCourtNumber(),
-            api.getReservationTime()
-        );
-    }
-
     public static class NotificationRequest {
-        public String recipientEmail; 
+        public String recipientEmail;
         public String subject;
         public String message;
 
@@ -85,7 +70,6 @@ public class ReservationServiceImplementation implements ReservationService {
             this.subject = subject;
             this.message = message;
         }
-
         public String getRecipientEmail() { return recipientEmail; }
         public String getSubject() { return subject; }
         public String getMessage() { return message; }

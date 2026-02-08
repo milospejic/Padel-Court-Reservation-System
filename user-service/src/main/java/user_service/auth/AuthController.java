@@ -7,7 +7,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import user_service.repository.UserServiceRepository;
-import util.JwtUtil;
 
 @RestController
 @RequestMapping("/auth")

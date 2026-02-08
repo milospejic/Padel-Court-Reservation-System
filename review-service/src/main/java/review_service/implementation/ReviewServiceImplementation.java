@@ -6,22 +6,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import review_service.model.ReviewModel;
+import review_service.mapper.ReviewMapper;
 import review_service.repository.ReviewRepository;
 import util.exceptions.InvalidRequestException;
-
-import java.time.LocalDate;
 
 @RestController
 public class ReviewServiceImplementation implements ReviewService {
 
+    private final ReviewRepository repo;
+    private final ReviewMapper mapper;
+
     @Autowired
-    private ReviewRepository repo;
+    public ReviewServiceImplementation(ReviewRepository repo, ReviewMapper mapper) {
+        this.repo = repo;
+        this.mapper = mapper;
+    }
 
     @Override
     public Flux<Review> getReviews(int clubId) {
         return repo.findByClubId(clubId)
-                .map(this::entityToApi);
+                .map(mapper::entityToApi);
     }
 
     @Override
@@ -32,34 +36,12 @@ public class ReviewServiceImplementation implements ReviewService {
         if (body.getRating() < 1 || body.getRating() > 5) {
             return Mono.error(new InvalidRequestException("Rating must be between 1 and 5"));
         }
-        return repo.save(apiToEntity(body))
-                .map(this::entityToApi);
+        return repo.save(mapper.apiToEntity(body))
+                .map(mapper::entityToApi);
     }
 
     @Override
     public Mono<Void> deleteReview(int id) {
         return repo.deleteById(id);
-    }
-
-    private Review entityToApi(ReviewModel entity) {
-        return new Review(
-            entity.getId(),
-            entity.getClubId(),
-            entity.getUserEmail(),
-            entity.getRating(),
-            entity.getComment(),
-            entity.getReviewDate(),
-            null 
-        );
-    }
-
-    private ReviewModel apiToEntity(Review api) {
-        return new ReviewModel(
-            api.getUserEmail(),
-            api.getClubId(),
-            api.getRating(),
-            api.getComment(),
-            (api.getReviewDate() != null) ? api.getReviewDate() : LocalDate.now()
-        );
     }
 }

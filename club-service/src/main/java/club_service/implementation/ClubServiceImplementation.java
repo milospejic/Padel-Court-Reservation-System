@@ -2,7 +2,7 @@ package club_service.implementation;
 
 import api.core.club.Club;
 import api.core.club.ClubService;
-import club_service.model.ClubModel;
+import club_service.mapper.ClubMapper;
 import club_service.repository.ClubRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,20 +14,26 @@ import util.exceptions.NoDataFoundException;
 @RestController
 public class ClubServiceImplementation implements ClubService {
 
+    private final ClubRepository repo;
+    private final ClubMapper mapper;
+
     @Autowired
-    private ClubRepository repo;
+    public ClubServiceImplementation(ClubRepository repo, ClubMapper mapper) {
+        this.repo = repo;
+        this.mapper = mapper;
+    }
 
     @Override
     public Flux<Club> getClubs() {
         return repo.findAll()
-                .map(this::entityToApi);
+                .map(mapper::entityToApi);
     }
 
     @Override
     public Mono<Club> getClub(int id) {
         return repo.findById(id)
                 .switchIfEmpty(Mono.error(new NoDataFoundException("Club not found: " + id)))
-                .map(this::entityToApi);
+                .map(mapper::entityToApi);
     }
 
     @Override
@@ -37,9 +43,9 @@ public class ClubServiceImplementation implements ClubService {
                     if (Boolean.TRUE.equals(exists)) {
                         return Mono.error(new EntityAlreadyExistsException("Club already exists: " + body.getName()));
                     }
-                    return repo.save(apiToEntity(body));
+                    return repo.save(mapper.apiToEntity(body));
                 })
-                .map(this::entityToApi);
+                .map(mapper::entityToApi);
     }
 
     @Override
@@ -51,19 +57,5 @@ public class ClubServiceImplementation implements ClubService {
                     }
                     return repo.deleteById(id);
                 });
-    }
-
-    private Club entityToApi(ClubModel entity) {
-        return new Club(
-            entity.getId(), 
-            entity.getName(), 
-            entity.getLocation(), 
-            entity.getPhoneNumber(), 
-            null
-        );
-    }
-
-    private ClubModel apiToEntity(Club api) {
-        return new ClubModel(api.getName(), api.getLocation(), api.getPhoneNumber());
     }
 }
