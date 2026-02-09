@@ -16,8 +16,8 @@ data:
         labels:
           severity: critical
         annotations:
-          summary: "Circuit Breaker Tripped for {{ $labels.destination_app }}"
-          description: "Service {{ $labels.destination_app }} is returning 503s."
+          summary: "Circuit Breaker Tripped for {{ $labels.destination_service_name }}"
+          description: "Service {{ $labels.destination_service_name }} is returning 503s."
       - alert: ServiceDown
         expr: absent(up{app="notification-service"})
         for: 1m

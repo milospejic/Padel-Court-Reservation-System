@@ -2,7 +2,6 @@
 
 # ==============================================================================
 # Padel System - Alarm Trigger Test Suite
-# Triggers: CircuitBreakerTripped & ServiceDown
 # ==============================================================================
 
 NAMESPACE="padel-dev"
@@ -52,7 +51,7 @@ echo "Waiting 5s for rule propagation..."
 sleep 5
 
 echo -e "${YELLOW}Running 45-second load test (High Load)...${NC}"
-kubectl exec "$FORTIO_POD" -n $NAMESPACE -c fortio -- fortio load -c 2 -qps 0 -t 45s http://review-service:80/review?clubId=1 > /dev/null 2>&1
+kubectl exec "$FORTIO_POD" -n $NAMESPACE -c fortio -- fortio load -c 2 -qps 0 -t 45s "http://review-service:80/review?clubId=1" > /dev/null 2>&1
 
 echo -e "${GREEN}Load test complete. Check MailHog for 'CircuitBreakerTripped' email.${NC}"
 
@@ -67,7 +66,7 @@ echo -e "${YELLOW}Scaling down notification-service...${NC}"
 kubectl scale deployment notification-service --replicas=0 -n $NAMESPACE
 
 echo -e "${YELLOW}Waiting 75 seconds for alert condition (Rule: for 1m)...${NC}"
-for i in {75..1}; do
+for (( i=75; i>=1; i-- )); do
     echo -ne "Time remaining: $i seconds\r"
     sleep 1
 done

@@ -18,7 +18,6 @@ NC='\033[0m'
 
 echo -e "${BLUE}>>> Starting Deployment Sequence...${NC}"
 
-# 1. Start Minikube
 if minikube status | grep -q "Running"; then
     echo -e "${GREEN}Minikube is already running.${NC}"
 else
@@ -26,11 +25,9 @@ else
     minikube start --cpus $CPUS --memory $MEMORY --driver=docker
 fi
 
-# 2. Configure Docker Environment
 echo -e "${BLUE}Pointing shell to Minikube's Docker daemon...${NC}"
 eval $(minikube docker-env)
 
-# 3. Setup Istio
 echo -e "${BLUE}Checking Istio installation...${NC}"
 if ! istioctl version > /dev/null 2>&1; then
     echo -e "${RED}istioctl is not installed. Please install Istio first.${NC}"
@@ -54,11 +51,9 @@ kubectl apply -f "${ISTIO_ADDON_URL}/extras/zipkin.yaml"
 echo -e "${BLUE}Applying Monitoring Stack (Alertmanager & Rules) Declaratively...${NC}"
 kubectl apply -k kubernetes/base/monitoring
 
-# Restart Prometheus to ensure it picks up the new ConfigMap and Volume Mounts immediately
 kubectl -n istio-system rollout restart deployment prometheus
 
 
-# 4. Create Namespace and Enable Injection
 echo -e "${BLUE}Setting up namespace: ${NAMESPACE}...${NC}"
 kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 kubectl label namespace $NAMESPACE istio-injection=enabled --overwrite
@@ -69,7 +64,6 @@ kubectl create secret generic jwt-secret --from-literal=JWT_SECRET=5367566B59703
 # rm -rf kubernetes/base/config-repo
 # cp -r config-repo kubernetes/base/
 
-# 6. Patch Deployment YAMLs (Crucial for Local Dev)
 echo -e "${BLUE}Patching Deployments to use local images (IfNotPresent)...${NC}"
 for file in kubernetes/base/deployments/*.yml; do
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -79,8 +73,6 @@ for file in kubernetes/base/deployments/*.yml; do
     fi
 done
 echo -e "${GREEN}Deployments patched.${NC}"
-
-# 7. Build Java & Docker Images
 
 echo -e "${BLUE}Building Shared Libraries...${NC}"
 cd util
@@ -135,8 +127,6 @@ done
 
 echo -e "${GREEN}All images built successfully.${NC}"
 
-# 8. Create Kubernetes Secrets
-
 echo -e "${BLUE}Creating Kubernetes Secrets...${NC}"
 kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 SECRET_VALUE="${JWT_SECRET:-5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437}"
@@ -148,7 +138,6 @@ echo -e "${GREEN}Secret 'jwt-secret' created in namespace '$NAMESPACE'.${NC}"
 
 
 
-# 9. Deploy to Kubernetes
 
 #echo -e "${BLUE}Creating Logging Namespace...${NC}"
 #kubectl create namespace logging --dry-run=client -o yaml | kubectl apply -f -
@@ -174,7 +163,6 @@ echo -e "${BLUE}Deploying EFK Components...${NC}"
  # --for=condition=Ready pod \
   #--selector=app=elasticsearch \
   #--timeout=300s
-
 
 
 
