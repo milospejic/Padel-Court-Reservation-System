@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+spec:
+  template:
+    spec:
+      containers:
+      - name: prometheus-server
+        volumeMounts:
+        - name: prometheus-rules
+          mountPath: /etc/prometheus/custom-rules
+      volumes:
+      - name: prometheus-rules
+        configMap:
+          name: prometheus-rules

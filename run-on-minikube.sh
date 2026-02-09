@@ -51,6 +51,13 @@ kubectl apply -f "${ISTIO_ADDON_URL}/grafana.yaml"
 kubectl apply -f "${ISTIO_ADDON_URL}/kiali.yaml"
 kubectl apply -f "${ISTIO_ADDON_URL}/extras/zipkin.yaml"
 
+echo -e "${BLUE}Applying Monitoring Stack (Alertmanager & Rules) Declaratively...${NC}"
+kubectl apply -k kubernetes/base/monitoring
+
+# Restart Prometheus to ensure it picks up the new ConfigMap and Volume Mounts immediately
+kubectl -n istio-system rollout restart deployment prometheus
+
+
 # 4. Create Namespace and Enable Injection
 echo -e "${BLUE}Setting up namespace: ${NAMESPACE}...${NC}"
 kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -

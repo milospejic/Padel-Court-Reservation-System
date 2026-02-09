@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: istio-system
+  labels:
+    app: prometheus
+data:
+  custom-alerts.yaml: |
+    groups:
+    - name: circuit-breakers
+      rules:
+      - alert: CircuitBreakerTripped
+        expr: rate(istio_requests_total{response_code="503"}[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit Breaker Tripped for {{ $labels.destination_app }}"
+          description: "Service {{ $labels.destination_app }} is returning 503s."
+      - alert: ServiceDown
+        expr: absent(up{app="notification-service"})
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Notification Service is Down"
+          description: "No running instances of notification-service were found for > 1 minute."
