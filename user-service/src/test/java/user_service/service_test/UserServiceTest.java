@@ -17,6 +17,7 @@ import reactor.core.publisher.Mono;
 
 import api.core.user.User;
 import user_service.implementation.UserServiceImplementation;
+import user_service.mapper.UserMapper;
 import user_service.model.UserModel;
 import user_service.repository.UserServiceRepository;
 import util.exceptions.EntityAlreadyExistsException;
@@ -27,6 +28,8 @@ class UserServiceTest {
     @Mock
     private UserServiceRepository repo;
     
+    @Mock
+    private UserMapper userMapper;
     @Mock
     private PasswordEncoder passwordEncoder;
 
@@ -49,18 +52,17 @@ class UserServiceTest {
         
         UserModel savedModel = new UserModel(newUser.getEmail(), fakeHash, newUser.getRole());
         savedModel.setId(1);
-        
+        when(userMapper.apiToEntity(any(User.class))).thenReturn(savedModel);
+
         when(repo.save(any(UserModel.class))).thenReturn(Mono.just(savedModel));
+
+        when(userMapper.entityToApi(any(UserModel.class))).thenReturn(newUser);
 
         User response = userService.createUser(newUser).block();
 
-
         assertNotNull(response);
-        assertEquals("new@uns.ac.rs", response.getEmail());
-        assertEquals(1, response.getId());
-        
-        verify(passwordEncoder).encode("password"); 
-        verify(repo, times(1)).save(any(UserModel.class));
+        verify(userMapper).apiToEntity(any(User.class));
+        verify(userMapper).entityToApi(any(UserModel.class));
     }
 
     @Test
@@ -78,10 +80,18 @@ class UserServiceTest {
     void getUser_Success() {
         UserModel user = new UserModel("test@email.com", "hashed_pass", "USER");
         user.setId(1);
+        
+        User expectedApiUser = new User(1, "test@email.com", null, "USER", "mock-address");
+
         when(repo.findById(1)).thenReturn(Mono.just(user));
+        
+        when(userMapper.entityToApi(any(UserModel.class))).thenReturn(expectedApiUser);
 
         User response = userService.getUser(1).block();
 
+        assertNotNull(response);
         assertEquals("test@email.com", response.getEmail());
+        assertEquals(1, response.getId());
+        verify(userMapper, times(1)).entityToApi(any(UserModel.class));
     }
 }

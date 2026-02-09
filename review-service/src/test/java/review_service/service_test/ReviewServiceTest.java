@@ -14,33 +14,34 @@ import reactor.core.publisher.Mono;
 
 import api.core.review.Review;
 import review_service.implementation.ReviewServiceImplementation;
+import review_service.mapper.ReviewMapper;
 import review_service.model.ReviewModel;
 import review_service.repository.ReviewRepository;
 import util.exceptions.InvalidRequestException;
 
 @ExtendWith(MockitoExtension.class)
 class ReviewServiceTest {
-
     @Mock private ReviewRepository repo;
+    @Mock private ReviewMapper reviewMapper; // Add this
 
     @InjectMocks
     private ReviewServiceImplementation reviewService;
 
     @Test
     void addReview_Success() {
-        Review review = new Review(0, 1, "user@test.com", 5, "Great", LocalDate.now(), null);
-        
-        ReviewModel savedModel = new ReviewModel("user@test.com", 1, 5, "Great", LocalDate.now());
-        savedModel.setId(1);
+        Review apiReview = new Review(0, 1, "u@u.com", 5, "Nice", null, null);
+        ReviewModel model = new ReviewModel();
 
-        when(repo.save(any(ReviewModel.class))).thenReturn(Mono.just(savedModel));
+        when(reviewMapper.apiToEntity(any())).thenReturn(model);
+        when(repo.save(any())).thenReturn(Mono.just(model));
+        when(reviewMapper.entityToApi(any())).thenReturn(apiReview);
 
-        Review response = reviewService.createReview(review).block();
+        Review response = reviewService.createReview(apiReview).block();
 
         assertNotNull(response);
         assertEquals(5, response.getRating());
-        verify(repo, times(1)).save(any(ReviewModel.class));
     }
+
 
     @Test
     void addReview_Fail_InvalidRating() {

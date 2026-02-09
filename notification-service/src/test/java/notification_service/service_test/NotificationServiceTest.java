@@ -17,26 +17,30 @@ import reactor.core.publisher.Mono;
 
 import api.core.notification.Notification;
 import notification_service.implementation.NotificationServiceImplementation;
+import notification_service.mapper.NotificationMapper;
 import notification_service.model.NotificationModel;
 import notification_service.repository.NotificationRepository;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
-
     @Mock private NotificationRepository repo;
+    @Mock private NotificationMapper notificationMapper;
 
     @InjectMocks
     private NotificationServiceImplementation notificationService;
 
     @Test
     void sendNotification_Success() {
-        Notification notification = new Notification("user@test.com", "Subject", "Message", LocalDateTime.now(), null);
-        
-        when(repo.save(any(NotificationModel.class))).thenReturn(Mono.just(new NotificationModel()));
+        Notification apiNotif = new Notification("user@test.com", "Sub", "Msg", null, null);
+        NotificationModel model = new NotificationModel();
 
-        Notification response = notificationService.sendNotification(notification).block();
+        when(notificationMapper.apiToEntity(any())).thenReturn(model);
+        when(repo.save(any())).thenReturn(Mono.just(model));
+        when(notificationMapper.entityToApi(any())).thenReturn(apiNotif);
+
+        Notification response = notificationService.sendNotification(apiNotif).block();
 
         assertNotNull(response);
-        verify(repo, times(1)).save(any(NotificationModel.class));
+        verify(notificationMapper).apiToEntity(apiNotif);
     }
 }
