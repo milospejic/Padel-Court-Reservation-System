@@ -4,9 +4,7 @@
 # Padel System - Endpoint Test Suite
 # ==============================================================================
 
-# ------------------------------------------------------------------------------
-# 1. CONFIGURATION
-# ------------------------------------------------------------------------------
+
 echo ">>> Detecting Gateway IP..."
 INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
 INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}' 2>/dev/null)
@@ -17,7 +15,6 @@ if [[ -z "$INGRESS_PORT" ]]; then INGRESS_PORT="80"; fi
 GATEWAY_URL="http://$INGRESS_HOST:$INGRESS_PORT"
 echo ">>> Target: $GATEWAY_URL"
 
-# Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
@@ -46,9 +43,7 @@ get_id() {
     echo "$1" | grep -o '"id":[0-9]*' | head -n1 | sed 's/"id"://'
 }
 
-# ==============================================================================
-# 2. ADMIN SETUP & HIERARCHY TESTS
-# ==============================================================================
+
 echo -e "\n${BLUE}>>> 1. Admin Setup & Security Checks${NC}"
 ADMIN_TOKEN=$(login "admin@uns.ac.rs")
 
@@ -72,11 +67,13 @@ VICTIM_RESP=$(curl -s -X POST "$GATEWAY_URL/user" \
   -d '{"email": "victim@test.com", "password": "123", "role": "USER"}')
 VICTIM_ID=$(get_id "$VICTIM_RESP")
 echo "Done (ID: $VICTIM_ID)"
+
 echo -e "${YELLOW}  - [Security] Admin trying to create another ADMIN...${NC}"
 ROGUE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GATEWAY_URL/user" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
   -d "{\"email\": \"rogue_admin_$RANDOM@test.com\", \"password\": \"password\", \"role\": \"ADMIN\"}")
 check 403 "$ROGUE_CODE" "POST /user (Admin creating Admin -> Forbidden)"
+
 
 echo -e "${YELLOW}  - [Security] Admin trying to delete OWNER (ID 3)...${NC}"
 DEL_OWNER_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$GATEWAY_URL/user/3" \
@@ -84,12 +81,9 @@ DEL_OWNER_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$GATEWAY_URL/
 check 403 "$DEL_OWNER_CODE" "DELETE /user/3 (Admin deleting Owner -> Forbidden)"
 
 
-# ==============================================================================
-# 3. PUBLIC ACCESS & REGISTRATION
-# ==============================================================================
+
 echo -e "\n${BLUE}>>> 2. Public Access & Registration${NC}"
 
-# --- Public Registration ---
 PUBLIC_EMAIL="public_$RANDOM@test.com"
 echo "  - Registering new public user ($PUBLIC_EMAIL)..."
 REG_RESP=$(curl -s -w "\n%{http_code}" -X POST "$GATEWAY_URL/auth/register" \
@@ -102,7 +96,6 @@ PUBLIC_ID=$(get_id "$REG_BODY")
 check 200 "$REG_CODE" "POST /auth/register (Public Registration)"
 if [[ -z "$PUBLIC_ID" ]]; then echo -e "${RED}    [FAIL] No ID returned for public user${NC}"; fi
 
-# --- Public GET ---
 CODE=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$GATEWAY_URL/club")
 check 200 "$CODE" "GET /club (List Clubs)"
 
@@ -118,9 +111,7 @@ else
 fi
 
 
-# ==============================================================================
-# 4. USER ROLE TESTS (Profile & Logic)
-# ==============================================================================
+
 echo -e "\n${BLUE}>>> 3. User Role Tests (regular_user@test.com)${NC}"
 USER_TOKEN=$(login "regular_user@test.com")
 
@@ -157,9 +148,6 @@ DEL_CLUB_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$GATEWAY_URL/c
 check 403 "$DEL_CLUB_CODE" "DELETE /club (Should Fail)"
 
 
-# ==============================================================================
-# 5. OWNER ROLE TESTS
-# ==============================================================================
 echo -e "\n${BLUE}>>> 4. Owner Role Tests (owner@uns.ac.rs)${NC}"
 OWNER_TOKEN=$(login "owner@uns.ac.rs")
 
@@ -185,10 +173,75 @@ DEL_CLUB_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$GATEWAY_URL/c
 check 403 "$DEL_CLUB_CODE" "DELETE /club (Should Fail)"
 
 
-# ==============================================================================
-# 6. ADMIN & CLEANUP
-# ==============================================================================
-echo -e "\n${BLUE}>>> 5. Final Cleanup (Admin)${NC}"
+
+echo -e "\n${BLUE}>>> 5. Phase 2: Data Privacy & Reservations${NC}"
+
+echo -n "  - Creating Phase 2 Club... "
+CLUB_P2_RESP=$(curl -s -X POST "$GATEWAY_URL/club" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"name": "Phase2Club", "location": "Privacy City", "phoneNumber": "999"}')
+CLUB_P2_ID=$(get_id "$CLUB_P2_RESP")
+echo "Done (ID: $CLUB_P2_ID)"
+
+echo -n "  - Creating User A (Victim)... "
+USER_A_RESP=$(curl -s -X POST "$GATEWAY_URL/user" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"email": "usera@test.com", "password": "password", "role": "USER"}')
+USER_A_ID=$(get_id "$USER_A_RESP")
+echo "Done (ID: $USER_A_ID)"
+
+echo -n "  - Creating User B (Attacker)... "
+USER_B_RESP=$(curl -s -X POST "$GATEWAY_URL/user" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"email": "userb@test.com", "password": "password", "role": "USER"}')
+USER_B_ID=$(get_id "$USER_B_RESP")
+echo "Done (ID: $USER_B_ID)"
+
+# --- Create Reservations ---
+TOKEN_A=$(login "usera@test.com")
+TOKEN_B=$(login "userb@test.com")
+
+echo "  - User A creating reservation..."
+RES_A_RESP=$(curl -s -X POST "$GATEWAY_URL/reservation" \
+  -H "Authorization: Bearer $TOKEN_A" -H "Content-Type: application/json" \
+  -d "{\"clubId\": $CLUB_P2_ID, \"courtNumber\": 1, \"reservationTime\": \"2026-12-01T10:00:00\", \"userEmail\": \"usera@test.com\"}")
+RES_A_ID=$(get_id "$(echo "$RES_A_RESP" | head -n -1)")
+
+echo "  - User B creating reservation..."
+RES_B_RESP=$(curl -s -X POST "$GATEWAY_URL/reservation" \
+  -H "Authorization: Bearer $TOKEN_B" -H "Content-Type: application/json" \
+  -d "{\"clubId\": $CLUB_P2_ID, \"courtNumber\": 2, \"reservationTime\": \"2026-12-01T11:00:00\", \"userEmail\": \"userb@test.com\"}")
+RES_B_ID=$(get_id "$(echo "$RES_B_RESP" | head -n -1)")
+
+
+echo -e "${YELLOW}  - [Privacy] User B requests ALL reservations...${NC}"
+ALL_RES=$(curl -s -X GET "$GATEWAY_URL/reservation" -H "Authorization: Bearer $TOKEN_B")
+
+if echo "$ALL_RES" | grep -q "\"courtNumber\":1"; then
+    echo -e "${RED}    [FAIL] User B can see User A's reservation!${NC}"
+else
+    echo -e "${GREEN}    [PASS] User B cannot see User A's reservation (Filtered).${NC}"
+fi
+
+echo -e "${YELLOW}  - [Privacy] User B requests User A's data explicitly...${NC}"
+ATTACK_RES=$(curl -s -X GET "$GATEWAY_URL/reservation?email=usera@test.com" -H "Authorization: Bearer $TOKEN_B")
+
+if echo "$ATTACK_RES" | grep -q "\"courtNumber\":1"; then
+    echo -e "${RED}    [FAIL] User B successfully accessed User A's data!${NC}"
+else
+    echo -e "${GREEN}    [PASS] User B blocked from accessing User A's data.${NC}"
+fi
+
+echo -e "${YELLOW}  - [Admin] Admin requests ALL reservations...${NC}"
+ADMIN_VIEW=$(curl -s -X GET "$GATEWAY_URL/reservation" -H "Authorization: Bearer $ADMIN_TOKEN")
+if echo "$ADMIN_VIEW" | grep -q "\"courtNumber\":1" && echo "$ADMIN_VIEW" | grep -q "\"courtNumber\":2"; then
+    echo -e "${GREEN}    [PASS] Admin can see all reservations.${NC}"
+else
+    echo -e "${RED}    [FAIL] Admin cannot see all data.${NC}"
+fi
+
+
+echo -e "\n${BLUE}>>> 6. Final Cleanup${NC}"
 
 if [[ -n "$RES_ID" ]]; then
     curl -s -o /dev/null -X DELETE "$GATEWAY_URL/reservation/$RES_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
@@ -207,9 +260,26 @@ if [[ -n "$PUBLIC_ID" ]]; then
     echo "  - Deleted Public User $PUBLIC_ID"
 fi
 if [[ -n "$NEW_ADMIN_ID" ]]; then
-
     curl -s -o /dev/null -X DELETE "$GATEWAY_URL/user/$NEW_ADMIN_ID" -H "Authorization: Bearer $OWNER_TOKEN"
     echo "  - Owner Deleted New Admin $NEW_ADMIN_ID"
+fi
+
+if [[ -n "$RES_A_ID" ]]; then
+    curl -s -o /dev/null -X DELETE "$GATEWAY_URL/reservation/$RES_A_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
+fi
+if [[ -n "$RES_B_ID" ]]; then
+    curl -s -o /dev/null -X DELETE "$GATEWAY_URL/reservation/$RES_B_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
+fi
+if [[ -n "$CLUB_P2_ID" ]]; then
+    curl -s -o /dev/null -X DELETE "$GATEWAY_URL/club/$CLUB_P2_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
+    echo "  - Deleted Phase 2 Club $CLUB_P2_ID"
+fi
+if [[ -n "$USER_A_ID" ]]; then
+    curl -s -o /dev/null -X DELETE "$GATEWAY_URL/user/$USER_A_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
+fi
+if [[ -n "$USER_B_ID" ]]; then
+    curl -s -o /dev/null -X DELETE "$GATEWAY_URL/user/$USER_B_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
+    echo "  - Deleted Phase 2 Users"
 fi
 
 echo -e "\n${GREEN}>>> Test Suite Complete.${NC}"

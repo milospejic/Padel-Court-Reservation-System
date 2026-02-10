@@ -59,12 +59,29 @@ public class ReservationServiceImplementation implements ReservationService {
     @GetMapping(value = "/reservation", produces = "application/json")
     @Override
     public Flux<Reservation> getReservations(@RequestParam(value = "email", required = false) String email) {
-        if (email != null && !email.isEmpty()) {
-            return repo.findByUserEmail(email).map(mapper::entityToApi);
-        }
-        return repo.findAll().map(mapper::entityToApi);
+        return Flux.deferContextual(ctx -> {
+            ServerWebExchange exchange = ctx.getOrDefault(ServerWebExchange.class, null);
+            String requesterRole = (exchange != null) ? exchange.getRequest().getHeaders().getFirst("logged-in-user-role") : null;
+            String requesterId = (exchange != null) ? exchange.getRequest().getHeaders().getFirst("logged-in-user-id") : null;
+
+
+            if ("USER".equals(requesterRole)) {
+                if (requesterId == null) return Flux.error(new ForbidenActionException("Identity missing"));
+                return repo.findByUserEmail(requesterId).map(mapper::entityToApi);
+            }
+
+            if ("ADMIN".equals(requesterRole)) {
+                if (email != null && !email.isEmpty()) {
+                    return repo.findByUserEmail(email).map(mapper::entityToApi);
+                }
+                return repo.findAll().map(mapper::entityToApi);
+            }
+            
+            return Flux.error(new ForbidenActionException("Access denied"));
+        });
     }
 
+ 
     @DeleteMapping(value = "/reservation/{id}")
     public Mono<Void> deleteReservation(@PathVariable int id, ServerWebExchange exchange) {
         String currentUserEmail = exchange.getRequest().getHeaders().getFirst("logged-in-user-id");
