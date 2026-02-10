@@ -23,14 +23,12 @@ public class ReviewServiceImplementation implements ReviewService {
         this.mapper = mapper;
     }
 
-    // --- GET (Explicit Mapping) ---
     @GetMapping(value = "/review", produces = "application/json")
     @Override
     public Flux<Review> getReviews(@RequestParam(value = "clubId", required = true) int clubId) {
         return repo.findByClubId(clubId).map(mapper::entityToApi);
     }
 
-    // --- SECURE CREATE (Explicit Mapping) ---
     @PostMapping(value = "/review", consumes = "application/json", produces = "application/json")
     public Mono<Review> createReview(@RequestBody Review body, ServerWebExchange exchange) {
         String currentUserEmail = exchange.getRequest().getHeaders().getFirst("logged-in-user-id");
@@ -53,7 +51,6 @@ public class ReviewServiceImplementation implements ReviewService {
         return Mono.error(new InvalidRequestException("Internal Error: Method requires context"));
     }
 
-    // --- SECURE DELETE (Explicit Mapping) ---
     @DeleteMapping(value = "/review/{id}")
     public Mono<Void> deleteReview(@PathVariable int id, ServerWebExchange exchange) {
         String currentUserEmail = exchange.getRequest().getHeaders().getFirst("logged-in-user-id");

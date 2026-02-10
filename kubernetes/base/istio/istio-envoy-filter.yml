@@ -28,8 +28,13 @@ spec:
               local meta = request_handle:streamInfo():dynamicMetadata():get("envoy.filters.http.jwt_authn")
               if meta then
                 local claims = meta["payload"]
-                if claims and claims["sub"] then
-                  request_handle:headers():add("logged-in-user-id", claims["sub"])
+                if claims then
+                  if claims["sub"] then
+                    request_handle:headers():add("logged-in-user-id", claims["sub"])
+                  end
+                  if claims["role"] then
+                    request_handle:headers():add("logged-in-user-role", claims["role"])
+                  end
                 end
               end
             end

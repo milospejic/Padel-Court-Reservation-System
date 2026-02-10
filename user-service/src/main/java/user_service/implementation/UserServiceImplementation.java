@@ -5,10 +5,13 @@ import api.core.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import user_service.mapper.UserMapper;
+import user_service.model.UserModel;
 import user_service.repository.UserServiceRepository;
 import util.exceptions.EntityAlreadyExistsException;
+import util.exceptions.ForbidenActionException;
 import util.exceptions.NoDataFoundException;
 
 @RestController
@@ -41,7 +44,17 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public Mono<User> createUser(User body) {
-        return repo.findByEmail(body.getEmail())
+        return Mono.deferContextual(ctx -> {
+            ServerWebExchange exchange = ctx.getOrDefault(ServerWebExchange.class, null);
+            String requesterRole = (exchange != null) ? exchange.getRequest().getHeaders().getFirst("logged-in-user-role") : null;
+
+            if (("ADMIN".equals(body.getRole()) || "OWNER".equals(body.getRole()))) {
+                if (!"OWNER".equals(requesterRole)) {
+                    return Mono.error(new ForbidenActionException("Only Owners can create Admins/Owners"));
+                }
+            }
+
+            return repo.findByEmail(body.getEmail())
                 .hasElement()
                 .flatMap(exists -> {
                     if (Boolean.TRUE.equals(exists)) {
@@ -51,10 +64,45 @@ public class UserServiceImplementation implements UserService {
                     return repo.save(mapper.apiToEntity(body));
                 })
                 .map(mapper::entityToApi);
+        });
     }
 
     @Override
     public Mono<Void> deleteUser(int id) {
-        return repo.deleteById(id);
+        return Mono.deferContextual(ctx -> {
+            ServerWebExchange exchange = ctx.getOrDefault(ServerWebExchange.class, null);
+            String requesterRole = (exchange != null) ? exchange.getRequest().getHeaders().getFirst("logged-in-user-role") : null;
+
+            return repo.findById(id)
+                .switchIfEmpty(Mono.error(new NoDataFoundException("User not found: " + id)))
+                .flatMap(targetUser -> {
+                    if ("ADMIN".equals(requesterRole) && !"USER".equals(targetUser.getRole())) {
+                        return Mono.error(new ForbidenActionException("Admins can only delete Users."));
+                    }
+                    return repo.delete(targetUser);
+                });
+        });
+    }
+
+    @Override
+    public Mono<User> updateUser(int id, User body) {
+        return Mono.deferContextual(ctx -> {
+            ServerWebExchange exchange = ctx.getOrDefault(ServerWebExchange.class, null);
+            String requesterId = (exchange != null) ? exchange.getRequest().getHeaders().getFirst("logged-in-user-id") : null;
+
+            return repo.findById(id)
+                .switchIfEmpty(Mono.error(new NoDataFoundException("User not found: " + id)))
+                .flatMap(user -> {
+                    if (requesterId != null && !user.getEmail().equals(requesterId)) {
+                        return Mono.error(new ForbidenActionException("You can only update your own profile."));
+                    }
+                    
+                    if (body.getPassword() != null && !body.getPassword().isEmpty()) {
+                        user.setPassword(passwordEncoder.encode(body.getPassword()));
+                    }
+                    return repo.save(user);
+                })
+                .map(mapper::entityToApi);
+        });
     }
 }

@@ -15,7 +15,6 @@ spec:
     - operation:
         methods: ["GET"]
         paths: ["/club*", "/review*"] 
-
   - from:
     - source:
         requestPrincipals: ["*"] 
@@ -34,6 +33,17 @@ spec:
         requestPrincipals: ["*"]
     when:
     - key: request.auth.claims[role]
+      values: ["USER"]
+    to:
+    - operation:
+        methods: ["GET", "PUT"]
+        paths: ["/user*"]
+
+  - from:
+    - source:
+        requestPrincipals: ["*"]
+    when:
+    - key: request.auth.claims[role]
       values: ["ADMIN"]
     to:
     - operation:
@@ -44,14 +54,6 @@ spec:
         paths: ["/review*"]
     - operation:
         paths: ["/notification*"]
-
-  - from:
-    - source:
-        requestPrincipals: ["*"]
-    when:
-    - key: request.auth.claims[role]
-      values: ["ADMIN", "OWNER"]
-    to:
     - operation:
         paths: ["/user*"]
 
@@ -63,5 +65,4 @@ spec:
       values: ["OWNER"]
     to:
     - operation:
-        methods: ["DELETE"]
         paths: ["/user*"]

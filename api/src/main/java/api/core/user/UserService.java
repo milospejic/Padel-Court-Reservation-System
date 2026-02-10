@@ -15,4 +15,7 @@ public interface UserService {
 
     @DeleteMapping(value = "/user/{id}")
     Mono<Void> deleteUser(@PathVariable int id);
+
+    @PutMapping(value = "/user/{id}", consumes = "application/json", produces = "application/json")
+    Mono<User> updateUser(@PathVariable int id, @RequestBody User body);
 }

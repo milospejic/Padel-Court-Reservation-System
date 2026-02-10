@@ -28,7 +28,6 @@ public class ReservationServiceImplementation implements ReservationService {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    // --- SECURE CREATE (Explicit Mapping) ---
     @PostMapping(value = "/reservation", consumes = "application/json", produces = "application/json")
     public Mono<Reservation> createReservation(@RequestBody Reservation body, ServerWebExchange exchange) {
         String currentUserEmail = exchange.getRequest().getHeaders().getFirst("logged-in-user-id");
@@ -52,13 +51,11 @@ public class ReservationServiceImplementation implements ReservationService {
                 .map(mapper::entityToApi);
     }
 
-    // Interface Override (No Mapping)
     @Override
     public Mono<Reservation> createReservation(Reservation body) {
         return Mono.error(new InvalidRequestException("Internal Error: Method requires context"));
     }
 
-    // --- GET (Explicit Mapping) ---
     @GetMapping(value = "/reservation", produces = "application/json")
     @Override
     public Flux<Reservation> getReservations(@RequestParam(value = "email", required = false) String email) {
@@ -68,7 +65,6 @@ public class ReservationServiceImplementation implements ReservationService {
         return repo.findAll().map(mapper::entityToApi);
     }
 
-    // --- SECURE DELETE (Explicit Mapping) ---
     @DeleteMapping(value = "/reservation/{id}")
     public Mono<Void> deleteReservation(@PathVariable int id, ServerWebExchange exchange) {
         String currentUserEmail = exchange.getRequest().getHeaders().getFirst("logged-in-user-id");
@@ -84,7 +80,6 @@ public class ReservationServiceImplementation implements ReservationService {
                 });
     }
 
-    // Interface Override (No Mapping)
     @Override
     public Mono<Void> deleteReservation(int id) {
         return Mono.error(new InvalidRequestException("Internal Error: Method requires context"));
