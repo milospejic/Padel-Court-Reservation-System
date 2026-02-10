@@ -26,7 +26,7 @@ public class AuthController {
         return repo.findByEmail(request.getEmail())
             .map(user -> {
                 if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                    String token = jwtUtil.generateToken(String.valueOf(user.getId()), user.getRole());
+                    String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
                     return ResponseEntity.ok(token);
                 } else {
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Credentials");

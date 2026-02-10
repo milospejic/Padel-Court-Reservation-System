@@ -29,9 +29,10 @@ class ReviewServiceIntegrationTest {
 
     @Test
     void addReview_Success() {
-        Review review = new Review(0, 1, "user@test.com", 5, "Great court!", LocalDate.now(), null);
+        Review review = new Review(0, 1, "ignored", 5, "Great court!", LocalDate.now(), null);
 
         webTestClient.post().uri("/review")
+                .header("logged-in-user-id", "user@test.com")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(review)
                 .exchange()

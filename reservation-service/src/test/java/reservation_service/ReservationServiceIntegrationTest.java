@@ -32,9 +32,10 @@ class ReservationServiceIntegrationTest {
 
     @Test
     void createReservation_Success() {
-        Reservation reservation = new Reservation(0, "user@test.com", 1, 3, LocalDateTime.now().plusDays(1), null);
+        Reservation reservation = new Reservation(0, "ignored", 1, 3, LocalDateTime.now().plusDays(1), null);
 
         webTestClient.post().uri("/reservation")
+                .header("logged-in-user-id", "user@test.com") 
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(reservation)
                 .exchange()

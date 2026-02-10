@@ -3,12 +3,13 @@ package review_service.implementation;
 import api.core.review.Review;
 import api.core.review.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import review_service.mapper.ReviewMapper;
 import review_service.repository.ReviewRepository;
-import util.exceptions.InvalidRequestException;
+import util.exceptions.*;
 
 @RestController
 public class ReviewServiceImplementation implements ReviewService {
@@ -22,26 +23,53 @@ public class ReviewServiceImplementation implements ReviewService {
         this.mapper = mapper;
     }
 
+    // --- GET (Explicit Mapping) ---
+    @GetMapping(value = "/review", produces = "application/json")
     @Override
-    public Flux<Review> getReviews(int clubId) {
-        return repo.findByClubId(clubId)
-                .map(mapper::entityToApi);
+    public Flux<Review> getReviews(@RequestParam(value = "clubId", required = true) int clubId) {
+        return repo.findByClubId(clubId).map(mapper::entityToApi);
+    }
+
+    // --- SECURE CREATE (Explicit Mapping) ---
+    @PostMapping(value = "/review", consumes = "application/json", produces = "application/json")
+    public Mono<Review> createReview(@RequestBody Review body, ServerWebExchange exchange) {
+        String currentUserEmail = exchange.getRequest().getHeaders().getFirst("logged-in-user-id");
+        if (currentUserEmail == null) return Mono.error(new ForbidenActionException("Identity missing"));
+
+        body.setUserEmail(currentUserEmail);
+
+        if (body.getClubId() <= 0) return Mono.error(new InvalidRequestException("Invalid clubId"));
+        if (body.getRating() < 1 || body.getRating() > 5) return Mono.error(new InvalidRequestException("Invalid rating"));
+
+        return repo.existsByClubIdAndUserEmail(body.getClubId(), currentUserEmail)
+            .flatMap(exists -> {
+                if (exists) return Mono.error(new EntityAlreadyExistsException("Review already exists for this club"));
+                return repo.save(mapper.apiToEntity(body)).map(mapper::entityToApi);
+            });
     }
 
     @Override
     public Mono<Review> createReview(Review body) {
-        if (body.getClubId() <= 0) {
-            return Mono.error(new InvalidRequestException("Invalid clubId: " + body.getClubId()));
-        }
-        if (body.getRating() < 1 || body.getRating() > 5) {
-            return Mono.error(new InvalidRequestException("Rating must be between 1 and 5"));
-        }
-        return repo.save(mapper.apiToEntity(body))
-                .map(mapper::entityToApi);
+        return Mono.error(new InvalidRequestException("Internal Error: Method requires context"));
+    }
+
+    // --- SECURE DELETE (Explicit Mapping) ---
+    @DeleteMapping(value = "/review/{id}")
+    public Mono<Void> deleteReview(@PathVariable int id, ServerWebExchange exchange) {
+        String currentUserEmail = exchange.getRequest().getHeaders().getFirst("logged-in-user-id");
+
+        return repo.findById(id)
+            .switchIfEmpty(Mono.error(new NoDataFoundException("Review not found: " + id)))
+            .flatMap(review -> {
+                if (!review.getUserEmail().equals(currentUserEmail)) {
+                    return Mono.error(new ForbidenActionException("You can only delete your own reviews."));
+                }
+                return repo.delete(review);
+            });
     }
 
     @Override
     public Mono<Void> deleteReview(int id) {
-        return repo.deleteById(id);
+        return Mono.error(new InvalidRequestException("Internal Error: Method requires context"));
     }
 }

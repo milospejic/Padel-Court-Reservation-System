@@ -12,6 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.server.ServerWebExchange;
 
 import reactor.core.publisher.Mono;
 import api.core.reservation.Reservation;
@@ -31,14 +34,21 @@ class ReservationServiceTest {
 
     @Test
     void createReservation_Success() {
-        Reservation res = new Reservation(0, "user@test.com", 1, 1, LocalDateTime.now(), null);
+        Reservation res = new Reservation(0, "ignored", 1, 1, LocalDateTime.now(), null);
         ReservationModel model = new ReservationModel();
+
+        // MOCK HEADER
+        MockServerHttpRequest request = MockServerHttpRequest.get("/")
+            .header("logged-in-user-id", "user@test.com")
+            .build();
+        ServerWebExchange exchange = MockServerWebExchange.from(request);
 
         when(reservationMapper.apiToEntity(any())).thenReturn(model);
         when(repo.save(any())).thenReturn(Mono.just(model));
         when(reservationMapper.entityToApi(any())).thenReturn(res);
 
-        Reservation response = reservationService.createReservation(res).block();
+        // Call method with exchange
+        Reservation response = reservationService.createReservation(res, exchange).block();
 
         assertNotNull(response);
         verify(rabbitTemplate).convertAndSend(eq("notification-queue"), any(Object.class));
