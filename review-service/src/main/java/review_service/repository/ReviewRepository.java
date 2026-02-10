@@ -11,4 +11,5 @@ public interface ReviewRepository extends ReactiveCrudRepository<ReviewModel, In
     Flux<ReviewModel> findByUserEmail(String userEmail);
     
     Mono<Boolean> existsByClubIdAndUserEmail(int clubId, String userEmail);
+    Mono<Void> deleteByClubId(int clubId);
 }

@@ -81,7 +81,7 @@ DEL_OWNER_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$GATEWAY_URL/
 check 403 "$DEL_OWNER_CODE" "DELETE /user/3 (Admin deleting Owner -> Forbidden)"
 
 
-
+#
 echo -e "\n${BLUE}>>> 2. Public Access & Registration${NC}"
 
 PUBLIC_EMAIL="public_$RANDOM@test.com"
@@ -148,6 +148,7 @@ DEL_CLUB_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$GATEWAY_URL/c
 check 403 "$DEL_CLUB_CODE" "DELETE /club (Should Fail)"
 
 
+
 echo -e "\n${BLUE}>>> 4. Owner Role Tests (owner@uns.ac.rs)${NC}"
 OWNER_TOKEN=$(login "owner@uns.ac.rs")
 
@@ -174,9 +175,9 @@ check 403 "$DEL_CLUB_CODE" "DELETE /club (Should Fail)"
 
 
 
-echo -e "\n${BLUE}>>> 5. Phase 2: Data Privacy & Reservations${NC}"
+echo -e "\n${BLUE}>>> 5. Data Privacy & Reservations${NC}"
 
-echo -n "  - Creating Phase 2 Club... "
+echo -n "  - Creating  Club... "
 CLUB_P2_RESP=$(curl -s -X POST "$GATEWAY_URL/club" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
   -d '{"name": "Phase2Club", "location": "Privacy City", "phoneNumber": "999"}')
@@ -197,7 +198,6 @@ USER_B_RESP=$(curl -s -X POST "$GATEWAY_URL/user" \
 USER_B_ID=$(get_id "$USER_B_RESP")
 echo "Done (ID: $USER_B_ID)"
 
-# --- Create Reservations ---
 TOKEN_A=$(login "usera@test.com")
 TOKEN_B=$(login "userb@test.com")
 
@@ -212,7 +212,6 @@ RES_B_RESP=$(curl -s -X POST "$GATEWAY_URL/reservation" \
   -H "Authorization: Bearer $TOKEN_B" -H "Content-Type: application/json" \
   -d "{\"clubId\": $CLUB_P2_ID, \"courtNumber\": 2, \"reservationTime\": \"2026-12-01T11:00:00\", \"userEmail\": \"userb@test.com\"}")
 RES_B_ID=$(get_id "$(echo "$RES_B_RESP" | head -n -1)")
-
 
 echo -e "${YELLOW}  - [Privacy] User B requests ALL reservations...${NC}"
 ALL_RES=$(curl -s -X GET "$GATEWAY_URL/reservation" -H "Authorization: Bearer $TOKEN_B")
@@ -241,7 +240,46 @@ else
 fi
 
 
-echo -e "\n${BLUE}>>> 6. Final Cleanup${NC}"
+echo -e "\n${BLUE}>>> 6. Cascading Deletion Logic${NC}"
+
+echo -n "  - Creating Disposable Club... "
+DISP_CLUB_RESP=$(curl -s -X POST "$GATEWAY_URL/club" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"name": "DeleteMeClub", "location": "Void", "phoneNumber": "000"}')
+DISP_CLUB_ID=$(get_id "$DISP_CLUB_RESP")
+echo "Done (ID: $DISP_CLUB_ID)"
+
+echo -n "  - Adding Review to Disposable Club... "
+REV_RESP=$(curl -s -X POST "$GATEWAY_URL/review" \
+  -H "Authorization: Bearer $USER_TOKEN" -H "Content-Type: application/json" \
+  -d "{\"clubId\": $DISP_CLUB_ID, \"rating\": 5, \"comment\": \"Will vanish\", \"userEmail\": \"regular_user@test.com\"}")
+echo "Done"
+
+echo -n "  - Verifying Review exists... "
+REVIEWS=$(curl -s -X GET "$GATEWAY_URL/review?clubId=$DISP_CLUB_ID")
+if echo "$REVIEWS" | grep -q "\"comment\":\"Will vanish\""; then
+    echo -e "${GREEN}[OK]${NC}"
+else
+    echo -e "${RED}[FAIL] Review not created! Response: $REV_RESP${NC}"
+fi
+
+echo "  - Deleting Club..."
+curl -s -o /dev/null -X DELETE "$GATEWAY_URL/club/$DISP_CLUB_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
+
+echo "  - Waiting 3 seconds for async deletion..."
+sleep 3
+
+# 6. Verify Review is GONE
+echo -e "${YELLOW}  - [Logic] Checking if reviews were deleted...${NC}"
+REVIEWS_AFTER=$(curl -s -X GET "$GATEWAY_URL/review?clubId=$DISP_CLUB_ID")
+if echo "$REVIEWS_AFTER" | grep -q "\"comment\":\"Will vanish\""; then
+    echo -e "${RED}    [FAIL] Review still exists! Cascading delete failed.${NC}"
+else
+    echo -e "${GREEN}    [PASS] Review successfully deleted by event system.${NC}"
+fi
+
+
+echo -e "\n${BLUE}>>> 7. Final Cleanup${NC}"
 
 if [[ -n "$RES_ID" ]]; then
     curl -s -o /dev/null -X DELETE "$GATEWAY_URL/reservation/$RES_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
@@ -272,14 +310,18 @@ if [[ -n "$RES_B_ID" ]]; then
 fi
 if [[ -n "$CLUB_P2_ID" ]]; then
     curl -s -o /dev/null -X DELETE "$GATEWAY_URL/club/$CLUB_P2_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
-    echo "  - Deleted Phase 2 Club $CLUB_P2_ID"
+    echo "  - Deleted Club $CLUB_P2_ID"
 fi
 if [[ -n "$USER_A_ID" ]]; then
     curl -s -o /dev/null -X DELETE "$GATEWAY_URL/user/$USER_A_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
 fi
 if [[ -n "$USER_B_ID" ]]; then
     curl -s -o /dev/null -X DELETE "$GATEWAY_URL/user/$USER_B_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
-    echo "  - Deleted Phase 2 Users"
+    echo "  - Deleted Users"
+fi
+
+if [[ -n "$DISP_CLUB_ID" ]]; then
+    curl -s -o /dev/null -X DELETE "$GATEWAY_URL/club/$DISP_CLUB_ID" -H "Authorization: Bearer $ADMIN_TOKEN"
 fi
 
 echo -e "\n${GREEN}>>> Test Suite Complete.${NC}"

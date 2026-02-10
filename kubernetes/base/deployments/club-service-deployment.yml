@@ -33,6 +33,10 @@ spec:
               value: "postgres"
             - name: SPRING_R2DBC_PASSWORD
               value: "postgres"
+            - name: SPRING_RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: SPRING_RABBITMQ_PORT
+              value: "5672"
             - name: SPRING_CONFIG_IMPORT
               value: "optional:file:/app/config/application.yml,optional:file:/app/config/club-service.yml"
             - name: SPRING_PROFILES_ACTIVE

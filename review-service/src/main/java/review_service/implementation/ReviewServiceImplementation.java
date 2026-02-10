@@ -2,6 +2,9 @@ package review_service.implementation;
 
 import api.core.review.Review;
 import api.core.review.ReviewService;
+import api.event.ClubDeletedEvent;
+
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
@@ -68,5 +71,11 @@ public class ReviewServiceImplementation implements ReviewService {
     @Override
     public Mono<Void> deleteReview(int id) {
         return Mono.error(new InvalidRequestException("Internal Error: Method requires context"));
+    }
+    
+    @RabbitListener(queues = "review-cleanup-queue")
+    public void handleClubDeletedEvent(ClubDeletedEvent event) {
+        System.out.println("Received ClubDeletedEvent for Club ID: " + event.getClubId());
+        repo.deleteByClubId(event.getClubId()).subscribe();
     }
 }
