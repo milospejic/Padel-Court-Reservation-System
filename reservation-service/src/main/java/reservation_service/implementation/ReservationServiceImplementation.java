@@ -39,18 +39,22 @@ public class ReservationServiceImplementation implements ReservationService {
         body.setUserEmail(currentUserEmail);
 
         return repo.save(mapper.apiToEntity(body))
-                .doOnSuccess(saved -> {
+                .flatMap(saved -> 
                     Mono.fromRunnable(() -> {
-                        try {
-                            NotificationRequest notification = new NotificationRequest(
-                                body.getUserEmail(),
-                                "Reservation Confirmed",
-                                "Your reservation for court " + body.getCourtNumber() + " is confirmed."
-                            );
-                            rabbitTemplate.convertAndSend("notification-queue", notification);
-                        } catch (Exception e) {}
-                    }).subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic()).subscribe();
-                })
+                        NotificationRequest notification = new NotificationRequest(
+                            body.getUserEmail(),
+                            "Reservation Confirmed",
+                            "Your reservation for court " + body.getCourtNumber() + " is confirmed."
+                        );
+                        rabbitTemplate.convertAndSend("notification-queue", notification);
+                    })
+                    .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                    .onErrorResume(e -> {
+                        System.err.println("Failed to send notification: " + e.getMessage());
+                        return Mono.empty();
+                    })
+                    .thenReturn(saved)
+                )
                 .map(mapper::entityToApi);
     }
 
