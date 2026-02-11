@@ -2,6 +2,9 @@ package reservation_service.implementation;
 
 import api.core.reservation.Reservation;
 import api.core.reservation.ReservationService;
+import api.event.ClubDeletedEvent;
+
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -97,6 +100,11 @@ public class ReservationServiceImplementation implements ReservationService {
                 });
     }
 
+    @RabbitListener(queues = "reservation-cleanup-queue")
+    public void handleClubDeletedEvent(ClubDeletedEvent event) {
+        System.out.println(">>> Reservation Service: Received ClubDeletedEvent for Club ID: " + event.getClubId());
+        repo.deleteByClubId(event.getClubId()).subscribe();
+    }
     @Override
     public Mono<Void> deleteReservation(int id) {
         return Mono.error(new InvalidRequestException("Internal Error: Method requires context"));
