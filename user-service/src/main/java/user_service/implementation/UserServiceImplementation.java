@@ -11,7 +11,7 @@ import user_service.mapper.UserMapper;
 import user_service.model.UserModel;
 import user_service.repository.UserServiceRepository;
 import util.exceptions.EntityAlreadyExistsException;
-import util.exceptions.ForbidenActionException;
+import util.exceptions.ForbiddenActionException;
 import util.exceptions.NoDataFoundException;
 
 @RestController
@@ -50,7 +50,7 @@ public class UserServiceImplementation implements UserService {
 
             if (("ADMIN".equals(body.getRole()) || "OWNER".equals(body.getRole()))) {
                 if (!"OWNER".equals(requesterRole)) {
-                    return Mono.error(new ForbidenActionException("Only Owners can create Admins/Owners"));
+                    return Mono.error(new ForbiddenActionException("Only Owners can create Admins/Owners"));
                 }
             }
 
@@ -77,7 +77,7 @@ public class UserServiceImplementation implements UserService {
                 .switchIfEmpty(Mono.error(new NoDataFoundException("User not found: " + id)))
                 .flatMap(targetUser -> {
                     if ("ADMIN".equals(requesterRole) && !"USER".equals(targetUser.getRole())) {
-                        return Mono.error(new ForbidenActionException("Admins can only delete Users."));
+                        return Mono.error(new ForbiddenActionException("Admins can only delete Users."));
                     }
                     return repo.delete(targetUser);
                 });
@@ -94,7 +94,7 @@ public class UserServiceImplementation implements UserService {
                 .switchIfEmpty(Mono.error(new NoDataFoundException("User not found: " + id)))
                 .flatMap(user -> {
                     if (requesterId != null && !user.getEmail().equals(requesterId)) {
-                        return Mono.error(new ForbidenActionException("You can only update your own profile."));
+                        return Mono.error(new ForbiddenActionException("You can only update your own profile."));
                     }
                     
                     if (body.getPassword() != null && !body.getPassword().isEmpty()) {

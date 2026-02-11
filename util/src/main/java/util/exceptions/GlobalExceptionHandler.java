@@ -55,8 +55,8 @@ public class GlobalExceptionHandler {
         );
     }
     
-    @ExceptionHandler(ForbidenActionException.class)
-    public ResponseEntity<?> handleForbidenActionException(ForbidenActionException ex){
+    @ExceptionHandler(ForbiddenActionException.class)
+    public ResponseEntity<?> handleForbidenActionException(ForbiddenActionException ex){
         return ResponseEntity.status(403).body(
                 new ExceptionModel(403, HttpStatus.FORBIDDEN, ex.getMessage())
         );

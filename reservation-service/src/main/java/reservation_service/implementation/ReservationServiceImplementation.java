@@ -10,7 +10,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reservation_service.mapper.ReservationMapper;
 import reservation_service.repository.ReservationRepository;
-import util.exceptions.ForbidenActionException;
+import util.exceptions.ForbiddenActionException;
 import util.exceptions.InvalidRequestException;
 import util.exceptions.NoDataFoundException;
 
@@ -31,7 +31,7 @@ public class ReservationServiceImplementation implements ReservationService {
     @PostMapping(value = "/reservation", consumes = "application/json", produces = "application/json")
     public Mono<Reservation> createReservation(@RequestBody Reservation body, ServerWebExchange exchange) {
         String currentUserEmail = exchange.getRequest().getHeaders().getFirst("logged-in-user-id");
-        if (currentUserEmail == null) return Mono.error(new ForbidenActionException("Identity missing"));
+        if (currentUserEmail == null) return Mono.error(new ForbiddenActionException("Identity missing"));
 
         body.setUserEmail(currentUserEmail);
 
@@ -66,7 +66,7 @@ public class ReservationServiceImplementation implements ReservationService {
 
 
             if ("USER".equals(requesterRole)) {
-                if (requesterId == null) return Flux.error(new ForbidenActionException("Identity missing"));
+                if (requesterId == null) return Flux.error(new ForbiddenActionException("Identity missing"));
                 return repo.findByUserEmail(requesterId).map(mapper::entityToApi);
             }
 
@@ -77,7 +77,7 @@ public class ReservationServiceImplementation implements ReservationService {
                 return repo.findAll().map(mapper::entityToApi);
             }
             
-            return Flux.error(new ForbidenActionException("Access denied"));
+            return Flux.error(new ForbiddenActionException("Access denied"));
         });
     }
 
@@ -85,13 +85,13 @@ public class ReservationServiceImplementation implements ReservationService {
     @DeleteMapping(value = "/reservation/{id}")
     public Mono<Void> deleteReservation(@PathVariable int id, ServerWebExchange exchange) {
         String currentUserEmail = exchange.getRequest().getHeaders().getFirst("logged-in-user-id");
-        if (currentUserEmail == null) return Mono.error(new ForbidenActionException("Identity missing"));
+        if (currentUserEmail == null) return Mono.error(new ForbiddenActionException("Identity missing"));
 
         return repo.findById(id)
                 .switchIfEmpty(Mono.error(new NoDataFoundException("Reservation not found: " + id)))
                 .flatMap(res -> {
                     if (!res.getUserEmail().equals(currentUserEmail)) {
-                        return Mono.error(new ForbidenActionException("You can only delete your own reservations."));
+                        return Mono.error(new ForbiddenActionException("You can only delete your own reservations."));
                     }
                     return repo.delete(res);
                 });

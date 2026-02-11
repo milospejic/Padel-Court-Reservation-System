@@ -35,7 +35,7 @@ public class ReviewServiceImplementation implements ReviewService {
     @PostMapping(value = "/review", consumes = "application/json", produces = "application/json")
     public Mono<Review> createReview(@RequestBody Review body, ServerWebExchange exchange) {
         String currentUserEmail = exchange.getRequest().getHeaders().getFirst("logged-in-user-id");
-        if (currentUserEmail == null) return Mono.error(new ForbidenActionException("Identity missing"));
+        if (currentUserEmail == null) return Mono.error(new ForbiddenActionException("Identity missing"));
 
         body.setUserEmail(currentUserEmail);
 
@@ -62,7 +62,7 @@ public class ReviewServiceImplementation implements ReviewService {
             .switchIfEmpty(Mono.error(new NoDataFoundException("Review not found: " + id)))
             .flatMap(review -> {
                 if (!review.getUserEmail().equals(currentUserEmail)) {
-                    return Mono.error(new ForbidenActionException("You can only delete your own reviews."));
+                    return Mono.error(new ForbiddenActionException("You can only delete your own reviews."));
                 }
                 return repo.delete(review);
             });
