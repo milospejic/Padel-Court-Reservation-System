@@ -1,34 +1,42 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: club-service
+  name: notification-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: club-service
+      app: notification-service
   template:
     metadata:
       annotations:
         proxy.istio.io/config: '{ "holdApplicationUntilProxyReceivesReady": true }'
       labels:
-        app: club-service
+        app: notification-service
     spec:
       initContainers:
-        - name: wait-for-postgres
+        - name: wait-for-dependencies
           image: busybox
-          command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done']
+          command: 
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done
+              until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done
       containers:
-        - name: club-service
-          image: milospejic001/club-service:latest
+        - name: notification-service
+          image: milospejic001/notification-service:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8081
+            - containerPort: 8084
+          envFrom:                          
+            - configMapRef:                 
+                name: env-config
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-Xmx192m"
             - name: SPRING_R2DBC_URL
-              value: r2dbc:postgresql://postgres:5432/club_db
+              value: r2dbc:postgresql://postgres:5432/notification_db
             - name: SPRING_R2DBC_USERNAME
               value: "postgres"
             - name: SPRING_R2DBC_PASSWORD
@@ -38,13 +46,11 @@ spec:
             - name: SPRING_RABBITMQ_PORT
               value: "5672"
             - name: SPRING_CONFIG_IMPORT
-              value: "optional:file:/app/config/application.yml,optional:file:/app/config/club-service.yml"
-            - name: SPRING_PROFILES_ACTIVE
-              value: docker
+              value: "optional:file:/app/config/application.yml,optional:file:/app/config/notification-service.yml"
           readinessProbe:
                       httpGet:
                         path: /actuator/health
-                        port: 8081
+                        port: 8084
                       initialDelaySeconds: 120
                       periodSeconds: 10
                       failureThreshold: 5

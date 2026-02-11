@@ -1,55 +1,52 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: notification-service
+  name: user-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: notification-service
+      app: user-service
   template:
     metadata:
       annotations:
         proxy.istio.io/config: '{ "holdApplicationUntilProxyReceivesReady": true }'
       labels:
-        app: notification-service
+        app: user-service
     spec:
       initContainers:
-        - name: wait-for-dependencies
+        - name: wait-for-postgres
           image: busybox
-          command: 
-            - sh
-            - -c
-            - |
-              until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done
-              until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done
+          command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done']
       containers:
-        - name: notification-service
-          image: milospejic001/notification-service:latest
+        - name: user-service
+          image: milospejic001/user-service:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8084
+            - containerPort: 8770
+          envFrom:                          
+            - configMapRef:                 
+                name: env-config
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-Xmx192m"
             - name: SPRING_R2DBC_URL
-              value: r2dbc:postgresql://postgres:5432/notification_db
+              value: r2dbc:postgresql://postgres:5432/user_db
             - name: SPRING_R2DBC_USERNAME
               value: "postgres"
             - name: SPRING_R2DBC_PASSWORD
               value: "postgres"
-            - name: SPRING_RABBITMQ_HOST
-              value: "rabbitmq"
-            - name: SPRING_RABBITMQ_PORT
-              value: "5672"
             - name: SPRING_CONFIG_IMPORT
-              value: "optional:file:/app/config/application.yml,optional:file:/app/config/notification-service.yml"
-            - name: SPRING_PROFILES_ACTIVE
-              value: docker
+              value: "optional:file:/app/config/application.yml,optional:file:/app/config/user-service.yml"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_SECRET
           readinessProbe:
                       httpGet:
                         path: /actuator/health
-                        port: 8084
+                        port: 8770
                       initialDelaySeconds: 120
                       periodSeconds: 10
                       failureThreshold: 5

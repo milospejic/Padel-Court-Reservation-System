@@ -45,7 +45,7 @@ kubectl exec "$FORTIO_POD" -n $NAMESPACE -c fortio -- fortio load -c 1 -n 5 -qps
 echo -e "\n${BLUE}>>> 2. Testing Connection Pooling (Overflow Protection)${NC}"
 echo "Applying STRICT Circuit Breaker (Max 1 Connection) from file..."
 
-kubectl apply -f kubernetes/base/resilience-test/strict-review-cb.yml
+kubectl apply -f kubernetes/overlays/dev/resilience-test/strict-review-cb.yml
 
 echo "Waiting for rule propagation (5s)..."
 sleep 5
@@ -76,7 +76,7 @@ kubectl apply -f kubernetes/base/istio/istio-circuit-breaker.yml > /dev/null 2>&
 echo -e "\n${BLUE}>>> 3. Testing Fault Injection & Application Fallback${NC}"
 echo "Injecting 500 Errors into Review Service..."
 
-kubectl apply -f kubernetes/base/resilience-test/review-fault-injection.yml
+kubectl apply -f kubernetes/overlays/dev/resilience-test/review-fault-injection.yml
 echo "Waiting for rule propagation (5s)..."
 sleep 5
 
@@ -103,8 +103,8 @@ fi
 
 echo -e "\n${BLUE}>>> 4. Cleaning Up Test Rules${NC}"
 
-kubectl delete -f kubernetes/base/resilience-test/review-fault-injection.yml --ignore-not-found=true
-kubectl delete -f kubernetes/base/resilience-test/strict-review-cb.yml --ignore-not-found=true
+kubectl delete -f kubernetes/overlays/dev/resilience-test/review-fault-injection.yml --ignore-not-found=true
+kubectl delete -f kubernetes/overlays/dev/resilience-test/strict-review-cb.yml --ignore-not-found=true
 
 echo "Restoring original Circuit Breaker policies..."
 kubectl apply -f kubernetes/base/istio/istio-circuit-breaker.yml

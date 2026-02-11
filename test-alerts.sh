@@ -46,7 +46,7 @@ FORTIO_POD=$(kubectl get pods -n $NAMESPACE -l app=fortio -o 'jsonpath={.items[0
 echo -e "\n${BLUE}>>> 3. Triggering 'CircuitBreakerTripped' Alert${NC}"
 echo "This test applies a strict rule and floods the service to cause 503 errors."
 
-kubectl apply -f kubernetes/base/resilience-test/strict-review-cb.yml
+kubectl apply -f kubernetes/overlays/dev/resilience-test/strict-review-cb.yml
 echo "Waiting 5s for rule propagation..."
 sleep 5
 

@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service 
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: user-service
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: club-service 
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: club-service
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: review-service 
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: review-service
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservation-service 
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: reservation-service
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service 
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: notification-service
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: club-composite-service 
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: club-composite-service
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"

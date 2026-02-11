@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - security/istio-peer-authentication.yml
 
 namespace: padel-prod
 
@@ -10,3 +11,15 @@ labels:
   - pairs:
       environment: production
       project: padel-reservation-system
+
+patches:
+  - path: replica_patch.yaml
+    target:
+      kind: Deployment
+      name: ".*-service"
+
+configMapGenerator:
+- name: env-config
+  literals:
+    - SPRING_PROFILES_ACTIVE=prod
+    - LOGGING_LEVEL_ROOT=INFO

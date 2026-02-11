@@ -1,52 +1,52 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: user-service
+  name: review-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: user-service
+      app: review-service
   template:
     metadata:
       annotations:
         proxy.istio.io/config: '{ "holdApplicationUntilProxyReceivesReady": true }'
       labels:
-        app: user-service
+        app: review-service
     spec:
       initContainers:
         - name: wait-for-postgres
           image: busybox
           command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done']
       containers:
-        - name: user-service
-          image: milospejic001/user-service:latest
+        - name: review-service
+          image: milospejic001/review-service:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8770
+            - containerPort: 8083
+          envFrom:                          
+            - configMapRef:                 
+                name: env-config
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-Xmx192m"
             - name: SPRING_R2DBC_URL
-              value: r2dbc:postgresql://postgres:5432/user_db
+              value: r2dbc:postgresql://postgres:5432/review_db
             - name: SPRING_R2DBC_USERNAME
               value: "postgres"
             - name: SPRING_R2DBC_PASSWORD
               value: "postgres"
+            - name: SPRING_RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: SPRING_RABBITMQ_PORT
+              value: "5672"
             - name: SPRING_CONFIG_IMPORT
-              value: "optional:file:/app/config/application.yml,optional:file:/app/config/user-service.yml"
-            - name: SPRING_PROFILES_ACTIVE
-              value: docker
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: jwt-secret
-                  key: JWT_SECRET
+              value: "optional:file:/app/config/application.yml,optional:file:/app/config/review-service.yml"
           readinessProbe:
                       httpGet:
                         path: /actuator/health
-                        port: 8770
-                      initialDelaySeconds: 120
+                        port: 8083
+                      initialDelaySeconds: 120 
                       periodSeconds: 10
                       failureThreshold: 5
           volumeMounts:

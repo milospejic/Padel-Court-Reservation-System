@@ -10,3 +10,8 @@ labels:
   - pairs:
       environment: development
       project: padel-reservation-system
+configMapGenerator:
+- name: env-config
+  literals:
+    - SPRING_PROFILES_ACTIVE=dev
+    - LOGGING_LEVEL_ROOT=DEBUG

@@ -18,13 +18,14 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8085
+          envFrom:                          
+            - configMapRef:                 
+                name: env-config
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-Xmx192m"
             - name: SPRING_CONFIG_IMPORT
               value: "optional:file:/app/config/application.yml,optional:file:/app/config/club-composite-service.yml"
-            - name: SPRING_PROFILES_ACTIVE
-              value: docker
           readinessProbe:
             httpGet:
               path: /actuator/health

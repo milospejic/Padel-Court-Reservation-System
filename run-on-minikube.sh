@@ -49,7 +49,7 @@ kubectl apply -f "${ISTIO_ADDON_URL}/kiali.yaml"
 kubectl apply -f "${ISTIO_ADDON_URL}/extras/zipkin.yaml"
 
 echo -e "${BLUE}Applying Monitoring Stack (Alertmanager & Rules) Declaratively...${NC}"
-kubectl apply -k kubernetes/base/monitoring
+kubectl apply -k kubernetes/platform/monitoring
 
 kubectl -n istio-system rollout restart deployment prometheus
 
@@ -59,13 +59,9 @@ kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f 
 kubectl label namespace $NAMESPACE istio-injection=enabled --overwrite
 kubectl create secret generic jwt-secret --from-literal=JWT_SECRET=5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437 
 
-# 5. Prepare Configuration for Kustomize 
-# echo -e "${BLUE}Preparing config-repo for Kustomize...${NC}"
-# rm -rf kubernetes/base/config-repo
-# cp -r config-repo kubernetes/base/
 
 echo -e "${BLUE}Patching Deployments to use local images (IfNotPresent)...${NC}"
-for file in kubernetes/base/deployments/*.yml; do
+for file in kubernetes/base/components/deployments/*.yml; do
     if [[ "$OSTYPE" == "darwin"* ]]; then
         sed -i '' 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g' "$file"
     else
@@ -152,11 +148,8 @@ kubectl apply -f kubernetes/base/istio/istio-envoy-filter.yml
 echo -e "${BLUE}Applying Kubernetes Manifests (Apps)...${NC}"
 kubectl apply -k kubernetes/overlays/dev
 
-echo -e "${BLUE}Deploying EFK Components...${NC}"
-#kubectl apply -f kubernetes/base/efk/fluentd-hands-on-configmap.yml -n kube-system
-#kubectl apply -f kubernetes/base/efk/fluentd-ds.yml
-#kubectl apply -f kubernetes/base/efk/elasticsearch.yml -n logging
-#kubectl apply -f kubernetes/base/efk/kibana.yml -n logging
+#echo -e "${BLUE}Deploying EFK Components...${NC}"
+#kubectl apply -k kubernetes/platform/efk
 
 #echo -e "${BLUE}Waiting for Elasticsearch to be ready...${NC}"
 #kubectl wait --namespace logging \
